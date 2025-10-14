@@ -4,7 +4,7 @@ import type { Movie } from "../types/movie";
 import { getMovieByImdbId } from "../utils/api/getMovieByImdbID";
 
 // Basic localStorage cache with TTL
-const CACHE_PREFIX = "mlib:v4:";
+const CACHE_PREFIX = "mlib:v13:";
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 type CacheRecord = { movie: Movie; ts: number };

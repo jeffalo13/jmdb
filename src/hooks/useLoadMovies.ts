@@ -24,7 +24,7 @@ export function useLoadMovies(ids: string[]) {
           } catch (e: any) {
             results.push({
               id, imdbId: id, title: id, year: NaN,
-              genres: [], flavors: [], actors: [],
+              genres: [], flavors: [], actors: [], keywords: [],
               plot: "", posterUrl: ""
             });
             setErrors(prev => ({ ...prev, [id]: e?.message ?? "error" }));

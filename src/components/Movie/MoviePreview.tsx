@@ -1,0 +1,154 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import type { Movie } from "../../types/movie";
+import "./MoviePreview.css";
+
+interface Props {
+  movie: Movie | null;
+  onClose: () => void;
+}
+
+const SWIPE_PX = 30;
+
+const MoviePreview: React.FC<Props> = ({ movie, onClose }) => {
+  const [idx, setIdx] = useState(0);
+  const startX = useRef<number | null>(null);
+  const swiping = useRef(false);
+
+  // primary first, then unique alt posters
+  const posters = useMemo(() => {
+    if (!movie) return [];
+    const seen = new Set<string>();
+    const list: string[] = [];
+    if (movie.posterUrl) {
+      list.push(movie.posterUrl);
+      seen.add(movie.posterUrl);
+    }
+    for (const p of movie.altPosters || []) {
+      if (p && !seen.has(p)) {
+        list.push(p);
+        seen.add(p);
+      }
+    }
+    return list;
+  }, [movie]);
+
+  useEffect(() => setIdx(0), [movie]);
+
+  const count = posters.length || 1;
+  const goTo = (n: number) => {
+    const next = ((n % count) + count) % count;
+    setIdx(next);
+  };
+  const next = () => goTo(idx + 1);
+  const prev = () => goTo(idx - 1);
+
+  const onTouchStart: React.TouchEventHandler<HTMLDivElement> = (e) => {
+    startX.current = e.touches[0].clientX;
+    swiping.current = false;
+  };
+  const onTouchMove: React.TouchEventHandler<HTMLDivElement> = (e) => {
+    if (startX.current == null) return;
+    const dx = e.touches[0].clientX - startX.current;
+    if (Math.abs(dx) > SWIPE_PX) swiping.current = true;
+  };
+  const onTouchEnd: React.TouchEventHandler<HTMLDivElement> = (e) => {
+    if (startX.current == null) return;
+    const dx = e.changedTouches[0].clientX - startX.current;
+    startX.current = null;
+    if (Math.abs(dx) < SWIPE_PX) return;
+    if (dx < 0) next(); else prev();
+  };
+
+  const onPosterClick: React.MouseEventHandler<HTMLDivElement> = () => {
+    if (swiping.current) { swiping.current = false; return; }
+    next();
+  };
+
+  if (!movie) return null;
+
+
+  return (
+    <>
+      <div className="mp-backdrop" onClick={onClose} />
+      <section className="mp-container" role="dialog" aria-modal="true" aria-label={`${movie.title} details`} 
+                style={{['--mp-bg' as any]: `url(${movie.backdropUrl || movie.posterUrl})`}}>
+        <header className="mp-header">
+          <h2 className="mp-title">
+            {movie.title}{" "}
+            {Number.isFinite(movie.year) && <span className="mp-year">({movie.year})</span>}
+          </h2>
+          <button className="mp-close" onClick={onClose} aria-label="Close">✕</button>
+        </header>
+
+        {/* Poster carousel */}
+        <div
+          className="mp-posterWrap"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onClick={onPosterClick}
+          role="button"
+          aria-label="Change poster"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowRight") next();
+            if (e.key === "ArrowLeft") prev();
+            if (e.key === "Enter" || e.key === " ") next();
+          }}
+        >
+          {posters[idx] ? (
+            <img
+              className="mp-poster"
+              src={posters[idx]}
+              alt={`${movie.title} poster ${idx + 1} of ${count}`}
+            />
+          ) : (
+            <div className="mp-posterPlaceholder">{movie.title}</div>
+          )}
+
+          {count > 1 && (
+            <div className="mp-segments">
+              {posters.map((_, i) => (
+                <span
+                  key={i}
+                  className={`mp-segment ${i === idx ? "is-active" : ""}`}
+                  onClick={(e) => { e.stopPropagation(); goTo(i); }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Meta */}
+        <div className="mp-meta">
+          {movie.genres.length > 0 && (
+            <div className="mp-row">
+              {movie.genres.map((g) => (
+                <span key={g} className="mp-chip">{g}</span>
+              ))}
+            </div>
+          )}
+          {movie.keywords?.length > 0 && (
+            <div className="mp-row">
+              {movie.keywords.slice(0, 10).map((k) => (
+                <span key={k} className="mp-chip mp-chip--muted">{k}</span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {movie.plot && <p className="mp-plot">{movie.plot}</p>}
+
+        {/* {movie.actors.length > 0 && (
+          <div className="mp-cast">
+            <strong>Cast:</strong> <span>{movie.actors.join(", ")}</span>
+          </div>
+        )} */}
+
+        <div aria-hidden className="mp-spacer" />
+      </section>
+    </>
+  );
+};
+
+export default MoviePreview;

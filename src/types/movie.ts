@@ -11,4 +11,6 @@ export interface Movie {
   actors: string[];
   plot: string;
   posterUrl: string;
+  backdropUrl: string;
+  altPosters: string[];
 }
