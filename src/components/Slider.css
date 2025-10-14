@@ -1,0 +1,93 @@
+.prizm-ui-slider-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    user-select: none;
+}
+
+.slider-label {
+    font-weight: 600;
+    margin-bottom: 2px;
+    font-size: 1em;
+}
+
+.prizm-ui-slider-track-wrapper {
+    position: relative;
+    width: 100%;
+    height: 40px;
+}
+
+.prizm-ui-slider-track {
+    position: absolute;
+    top: 18px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    border-radius: 2px;
+    background: #eee;
+    z-index: 0;
+}
+
+.prizm-ui-slider-thumb {
+    position: absolute;
+    top: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    transform: translateY(-8px); /* Slightly over track */
+    box-shadow: 0 4px 14px rgba(0,0,0,0.10);
+    transition: box-shadow 0.2s;
+    z-index: 2;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+}
+
+.prizm-ui-slider-thumb.ripple .slider-ripple-circle {
+    animation: slider-ripple-burst 400ms ease-out;
+}
+
+.slider-ripple-circle {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    opacity: 0.22;
+    z-index: 3;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    pointer-events: none;
+}
+
+.slider-ripple-circle.show {
+    animation: slider-ripple-burst 400ms ease-out;
+}
+
+@keyframes slider-ripple-burst {
+    from { transform: translate(-50%, -50%) scale(0); opacity: 0.22; }
+    to { transform: translate(-50%, -50%) scale(2.3); opacity: 0; }
+}
+
+.prizm-ui-slider-input {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100%;
+    height: 36px;
+    opacity: 0;
+    z-index: 5;
+    cursor: pointer;
+}
+.slider-value-label {
+    margin-top: 6px;
+    font-family: 'Chakra Petch', monospace;
+    font-size: 1.1em;
+    text-align: center;
+}
+
+.prizm-ui-slider-container.disabled {
+    pointer-events: none;
+    opacity: 0.65;
+}

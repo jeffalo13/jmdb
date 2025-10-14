@@ -1,0 +1,133 @@
+.checkbox-wrapper {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  width: 20px;
+  height: 20px;
+  margin-right: 15px;
+  margin-left: 5px;
+}
+
+/* Default for square */
+.checkbox-wrapper.glow.checkbox-square {
+  box-shadow: 0 0 0 8px rgba(180,180,200,0.17);
+  border-radius: 3px;
+  transition: box-shadow 0.18s;
+}
+
+/* Circle version */
+.checkbox-wrapper.glow.checkbox-circle {
+  box-shadow: 0 0 0 8px rgba(180,180,200,0.17);
+  border-radius: 50%;
+  transition: box-shadow 0.18s;
+}
+
+/* RIPPLE EFFECT */
+.checkbox-ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  background: var(--accentColor);
+  opacity: 0.25;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(1); /* Start at final scale */
+  animation: checkbox-ripple-burst 750ms ease-out;
+  z-index: 2;
+}
+
+.checkbox-ripple.circle {
+  border-radius: 50%;
+}
+
+.checkbox-ripple.square {
+  border-radius: 3px;
+}
+
+@keyframes checkbox-ripple-burst {
+  to {
+    transform: translate(-50%, -50%) scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* === ROUND RADIO BUTTON === */
+.checkbox-wrapper input[type="checkbox"].checkbox-circle-input {
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--borderColor);
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  background: var(--bgFillColor);
+  transition: border-color 0.2s;
+  margin: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: block;
+  padding: 0;
+}
+
+.checkbox-wrapper input[type="checkbox"].checkbox-circle-input:checked {
+  border-color: var(--accentColor);
+}
+
+.checkbox-wrapper .circle-fill {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--accentColor);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* === SQUARE CUSTOM CHECKBOX === */
+.checkbox-wrapper input[type="checkbox"].checkbox-square-input {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  border: 2px solid var(--borderColor);
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  margin: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: block;
+  padding: 0;
+}
+
+.checkbox-wrapper input[type="checkbox"].checkbox-square-input:checked {
+  border-color: var(--accentColor);
+  background: var(--accentColor);
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked:hover {
+  filter: brightness(0.80)
+}
+
+/* The checkmark (centered) */
+.checkbox-wrapper .square-checkmark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 8px;
+  transform: translate(-50%, -60%) rotate(45deg);
+  border-right: 3px solid var(--bgFillColor);
+  border-bottom: 3px solid var(--bgFillColor);
+  z-index: 2;
+  pointer-events: none;
+}

@@ -1,0 +1,42 @@
+/* Place this in your global CSS or a CSS module */
+.dropdown-only-btn {
+  position: relative;
+  z-index: 1;
+  /* Don't set display: flex here! */
+}
+
+.dropdown-only-btn::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  left: -15px;
+  right: -15px;
+  border-radius: 999px;
+  
+  z-index: -1;
+  pointer-events: auto;
+}
+
+.dropdown-menu {
+  border-radius: 12px;
+  overflow: hidden;
+}
+.dropdown-menu::-webkit-scrollbar {
+  width: 8px;
+  border-radius: 8px;
+  background: transparent;
+}
+.dropdown-menu::-webkit-scrollbar-thumb {
+  background: #d2d2d2;
+  border-radius: 8px;
+  min-height: 20px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+/* Firefox */
+.dropdown-menu {
+  /* scrollbar-width: thin; */
+  /* margin-right: 100px; */
+  scrollbar-color: var(--foregroundColor) transparent;
+}
