@@ -23,9 +23,32 @@ const App: React.FC = () => {
   const [sortAsc, setSortAsc] = useState(true);
   const [sortMode, setSortMode] = useState<SortKey>("alpha");
 
+  type TagType = "genre" | "flavor" | "keyword" | "cast" | "crew" | "search";
+
+  const applyMap: Record<TagType, (v: string) => void> = {
+    genre: (v) => setSelectedGenres([v]),
+    flavor: (v) => setSelectedFlavors([v]),
+    keyword: (v) => setSelectedKeywords([v]),
+    cast: (v) => setSelectedCast([v]),
+    crew: (v) => setSelectedCrew([v]),
+    search: (v) => setTerm(v),              // <- string state
+    
+  };
+
+  // resets
+  const resetFunctions: Array<() => void> = [
+    () => setSelectedGenres([]),
+    () => setSelectedFlavors([]),
+    () => setSelectedKeywords([]),
+    () => setSelectedCast([]),
+    () => setSelectedCrew([]),
+    () => setTerm(""),                       // <- string state
+  ];
+
+
   const accentColor = "#f0e68c";
 
-  const {movieIDs, loadingIDs} = useMovieIDs();
+  const { movieIDs, loadingIDs } = useMovieIDs();
 
   const { movies, loadingMovieInfo } = useLoadMovies(movieIDs as unknown as string[]);
 
@@ -38,20 +61,20 @@ const App: React.FC = () => {
     return toArray;
   }
 
-const matchesSearchTerm = (movie: Movie, raw: string) => {
-  const t = raw.trim().toLowerCase();
-  if (!t) return true; // or false, depending on your UX
+  const matchesSearchTerm = (movie: Movie, raw: string) => {
+    const t = raw.trim().toLowerCase();
+    if (!t) return true; // or false, depending on your UX
 
-  const inArr = (arr?: string[]) =>
-    Array.isArray(arr) && arr.some(s => s?.toLowerCase().includes(t));
+    const inArr = (arr?: string[]) =>
+      Array.isArray(arr) && arr.some(s => s?.toLowerCase().includes(t));
 
-  return (
-    movie.title.toLowerCase().includes(t) ||
-    inArr(movie.genres) ||
-    inArr(movie.flavors) ||
-    inArr(movie.keywords)
-  );
-};
+    return (
+      movie.title.toLowerCase().includes(t) ||
+      inArr(movie.genres) ||
+      inArr(movie.flavors) ||
+      inArr(movie.keywords)
+    );
+  };
 
 
   const genreOptions: DropdownOption[] = useMemo(() => {
@@ -133,86 +156,26 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
     return copy;
   }, [filtered, sortMode, sortAsc]);
 
-  const onGenreClicked = (genre: string) => {
-    setSelectedGenres([genre]);
-
-    //resets
-    setSelectedCrew([]);
-    setSelectedCast([]);
-    setSelectedFlavors([]);
-    setSelectedKeywords([]);
-    setTerm("");
-    scrollToTop();
-    
-  }
-  const onFlavorClicked = (flavor: string) => {
-    setSelectedFlavors([flavor])
-
-    //resets
-    setSelectedCrew([]);
-    setSelectedCast([]);
-    setSelectedGenres([]);
-    setSelectedKeywords([]);
-    setTerm("");
-    scrollToTop();
-  }
-  const onKeywordClicked = (keyword: string) => {
-    setSelectedKeywords([keyword]);
-
-    //resets
-    setSelectedCrew([]);
-    setSelectedCast([]);
-    setSelectedFlavors([]);
-    setSelectedGenres([]);
-    setTerm("");
-    scrollToTop();
-  }
-  const onCastClicked = (cast: string) => {
-
-    setSelectedCast([cast]);
-
-    //resets
-    setSelectedCrew([]);
-    setSelectedKeywords([]);
-    setSelectedFlavors([]);
-    setSelectedGenres([]);
-    setTerm("");
-    scrollToTop();
-  }
-
-  const onCrewClicked = (crew: string) => {
-    setSelectedCrew([crew]);
-
-    //resets
-    setSelectedCast([]);
-    setSelectedKeywords([]);
-    setSelectedFlavors([]);
-    setSelectedGenres([]);
-    setTerm("");
-    scrollToTop();
-  }
+  const onTagClicked = (type: TagType, value: string) => {
+    resetAll();
+    applyMap[type](value);
+  };
 
   const logoClicked = () => {
-    clearFilters();
-    scrollToTop();
-    
+    resetAll();
   }
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const clearFilters = () => {
-    setSelectedGenres([]);
-    setSelectedFlavors([]);
-    setSelectedKeywords([]);
-    setSelectedCast([]);
-    setSelectedCrew([]);
-    setTerm("");
-    setSortAsc(true);
+  const resetAll = () => {
+  resetFunctions.forEach(fn => fn());
+      setSortAsc(true);
     setSortMode("alpha")
     setOpenMovie(null);
-  }
+  scrollToTop();
+};
 
 
 
@@ -224,9 +187,9 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
           <img src="/logo.png" alt="Jeff's Movies" className="ml-logo" height={40} onClick={logoClicked} />
         </div>
 
- 
+
       </div>
-                   <section className="ml-controlsStack">
+      <section className="ml-controlsStack">
         <SearchBox
           backgroundColor="#0b0c10"
           accentColor={accentColor}
@@ -295,8 +258,8 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
               label="Clear Filters"
               accentColor="#242636"
               borderColor="transparent"
-              style={{ borderRadius: 4, fontSize: "11px", height:"23px", lineHeight: 1}} // line-height helps text centering
-              onClick={clearFilters}
+              style={{ borderRadius: 4, fontSize: "11px", height: "23px", lineHeight: 1 }} // line-height helps text centering
+              onClick={resetAll}
             />
           </div>
           {/* <div style={{ display: "flex", alignItems: "center" }}>
@@ -320,7 +283,7 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
 
 
 
-        </section>
+      </section>
       {/* Poster grid */}
       <main className="ml-grid">
         {loading && <div className="ml-loading">Loading 4k Blu-ray Collection...</div>}
@@ -340,8 +303,8 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
       </main>
 
       {/* Mobile sheet with details */}
-      <MovieSheet movie={openMovie} onClose={() => setOpenMovie(null)} 
-      onFlavorClicked={onFlavorClicked} onGenreClicked={onGenreClicked} onKeywordClicked={onKeywordClicked} onCastClicked={onCastClicked} onCrewClicked={onCrewClicked} />
+      <MovieSheet movie={openMovie} onClose={() => setOpenMovie(null)}
+        onTagClicked={onTagClicked} />
     </div>
   );
 };

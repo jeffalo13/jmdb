@@ -2,19 +2,18 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Movie } from "../../types/movie";
 import "./MoviePreview.css";
 
+type TagType = "genre" | "flavor" | "keyword" | "cast" | "crew" | "search";
+
+
 interface Props {
   movie: Movie | null;
   onClose: () => void;
-  onGenreClicked: (genre: string) => void;
-  onFlavorClicked: (flavor: string) => void;
-  onKeywordClicked: (keyword: string) => void;
-  onCastClicked: (cast: string) => void;
-  onCrewClicked: (crew: string) => void;
+  onTagClicked: (type: TagType, tag: string) => void;
 }
 
 const SWIPE_PX = 30;
 
-const MoviePreview: React.FC<Props> = ({ movie, onClose, onGenreClicked, onFlavorClicked, onKeywordClicked, onCastClicked, onCrewClicked }) => {
+const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
   const [idx, setIdx] = useState(0);
   const startX = useRef<number | null>(null);
   const swiping = useRef(false);
@@ -85,25 +84,9 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onGenreClicked, onFlavo
     setTimeout(onClose, 400); // matches animation duration
   };
 
-  const handleTagClicked = (tagType: string, tag: string) => {
+  const handleTagClicked = (tagType: TagType, tag: string) => {
 
-    switch (tagType) {
-      case "genre":
-        onGenreClicked(tag)
-        break;
-      case "flavor":
-        onFlavorClicked(tag)
-        break;
-      case "keyword":
-        onKeywordClicked(tag)
-        break;
-      case "cast":
-        onCastClicked(tag);
-        break;
-      case "crew":
-        onCrewClicked(tag);
-        break;
-    }
+    onTagClicked(tagType, tag);
 
     handleClose();
 
