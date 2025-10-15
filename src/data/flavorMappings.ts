@@ -349,7 +349,6 @@ export const KEYWORD_TO_FLAVORS: Record<string, Flavor[]> = {
   "gladiator": ["Historical Epic","Epic Grand Drama"],
   "mafia war": ["Crime Epic Gangster"],
   "court case": ["Legal Drama Courtroom"],
-  "prison": ["Crime Epic Gangster","Survival Horror"],
   "electric chair": ["Legal Drama Courtroom","Bleak Somber"],
   "mythology": ["Mythic Religious Fantasy","Fantasy World"],
   "witchcraft": ["Folk Horror","Occult Horror","Supernatural Horror"],
