@@ -171,25 +171,30 @@ const App: React.FC = () => {
   }, [filtered, sortMode, sortAsc]);
 
   const onTagClicked = (type: TagType, value: string) => {
-    resetAll();
+    resetFilters();
     applyMap[type](value);
-    setTagText(`${value}`)
+    setTagText(`${value}`);
+    scrollToTop();
   };
 
   const logoClicked = () => {
-    resetAll();
+    resetFilters();
+    resetSort();
+    scrollToTop();
   }
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const resetAll = () => {
+  const resetFilters = () => {
     resetFunctions.forEach(fn => fn());
+  };
+
+  const resetSort = () => {
     setSortAsc(true);
     setSortMode("alpha")
-    scrollToTop();
-  };
+  }
 
   return (
     <div className="ml-app">
@@ -280,7 +285,7 @@ const App: React.FC = () => {
                 accentColor="#242636"
                 borderColor="transparent"
                 style={{ borderRadius: 4, fontSize: "11px", height: "23px", lineHeight: 1 }} // line-height helps text centering
-                onClick={resetAll}
+                onClick={resetFilters}
               />
             </div>
             <div style={{ display: "flex", alignItems: "center" }}>
@@ -290,7 +295,7 @@ const App: React.FC = () => {
                   accentColor="#242636"
                   borderColor="transparent"
                   style={{ borderRadius: 4, fontSize: "11px", height: "23px", lineHeight: 1 }} // line-height helps text centering
-                  onClick={() => resetAll()}
+                  onClick={() => resetFilters()}
                 />
               )}
             </div>
