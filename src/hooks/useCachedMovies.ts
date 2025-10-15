@@ -78,7 +78,7 @@ useEffect(() => {
     const sameList = prevSig === sig;
 
     // ✅ 2) First run / missing signature, but cache already has this exact set
-    if (!sameList && !prevSig) {
+    if (!sameList && !sig) {
       const cached = ids.map(id => readCache(id)).filter(Boolean) as Movie[];
       if (cached.length === ids.length) {
         if (alive) {
@@ -112,6 +112,7 @@ useEffect(() => {
       ids.map(async (id) => {
         try {
           const m = await getMovieByImdbId(id, controller.signal);
+          console.log("api call made")
           writeCache(id, m);
           return m;
         } catch { return null; }
