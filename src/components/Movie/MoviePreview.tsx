@@ -81,7 +81,7 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
     setExiting(true);
     setShowKeywords(false);
     setShowCast(false);
-    setTimeout(onClose, 400); // matches animation duration
+    setTimeout(onClose, 250); // matches animation duration
   };
 
   const handleTagClicked = (tagType: TagType, tag: string) => {
@@ -96,7 +96,12 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
 
   return (
     <>
-      <div className="mp-backdrop" onClick={handleClose} />
+      <div className={`mp-backdrop ${exiting ? "is-exiting" : "is-open"}`}
+      onTransitionEnd={(e) => {
+        if (e.target === e.currentTarget && exiting) {
+          setExiting(false);      // unmount after fade-out
+        }
+      }} onClick={handleClose} />
       <section className={`mp-container ${exiting ? "is-exiting" : ""}`} role="dialog" aria-modal="true" aria-label={`${movie.title} details`}
         style={{ ['--mp-bg' as any]: `url(${movie.backdropUrl || movie.posterUrl})` }}>
         <header className="mp-header">

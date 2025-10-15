@@ -173,7 +173,6 @@ const App: React.FC = () => {
   resetFunctions.forEach(fn => fn());
       setSortAsc(true);
     setSortMode("alpha")
-    setOpenMovie(null);
   scrollToTop();
 };
 
