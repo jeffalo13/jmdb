@@ -44,7 +44,6 @@ export const PasswordBox = React.forwardRef<HTMLInputElement, PasswordBoxProps>(
             />
         );
 
-        console.log(rightIcon);
 
         return (
             <InputBox

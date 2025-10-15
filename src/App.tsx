@@ -26,6 +26,8 @@ const App: React.FC = () => {
 
   type TagType = "genre" | "flavor" | "keyword" | "cast" | "crew" | "search" | "tagText";
 
+  const [openKey, setOpenKey] = useState<null | "genre" | "flavor" | "keyword">(null);
+
   const applyMap: Record<TagType, (v: string) => void> = {
     genre: (v) => setSelectedGenres([v]),
     flavor: (v) => setSelectedFlavors([v]),
@@ -134,6 +136,7 @@ const App: React.FC = () => {
     const strip = (s = "") => s.replace(/^(?:the|a|an)\s+/i, "").trim();
     const dir = sortAsc ? 1 : -1;
     const rankYear = (y?: number | null) => (y == null ? Infinity : y); // unknown years last
+    const rankRuntime = (r?: number | null) => (r == null ? Infinity : r); // unknown years last
 
     switch (sortMode) {
       case "alpha": {
@@ -149,7 +152,15 @@ const App: React.FC = () => {
         });
         break;
       }
-      // case "runtime":
+       case "runtime":
+        copy.sort((a, b) => {
+          const primary = rankRuntime(a.runtime) - rankRuntime(b.runtime);
+          if (primary !== 0) return dir * primary;
+          // tie-break by title (always ascending for stability)
+          return collator.compare(strip(a.title), strip(b.title));
+        });
+        break;
+
       // case "rating":
       //   // add future modes here
       default:
@@ -180,8 +191,6 @@ const App: React.FC = () => {
     scrollToTop();
   };
 
-
-
   return (
     <div className="ml-app">
       {/* Sticky title header */}
@@ -193,129 +202,136 @@ const App: React.FC = () => {
 
       </div>
       <div className="ml-shell">
-<section className="ml-controlsStack">
-        <SearchBox
-          backgroundColor="#0b0c10"
-          accentColor={accentColor}
-          darkMode
-          value={term}
-          onChange={(e) => setTerm(e.target.value)}
-          placeholder="Search Anything..."
-        />
+        <section className="ml-controlsStack">
+          <SearchBox
+            backgroundColor="#0b0c10"
+            accentColor={accentColor}
+            darkMode
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+            placeholder="Search Anything..."
+          />
 
-        <Dropdown
-          backgroundColor="#0b0c10"
-          searchable
-          // label="Genre"
-          darkMode
-          options={genreOptions}
-          accentColor={accentColor}
-          selectedKeys={selectedGenres}
-          onChange={(v) => setSelectedGenres(Array.isArray(v) ? v.map(String) : [String(v)])}
-          multiSelect
-          placeholder="Filter Genre..."
-          showSelectAll={true}
-          style={{ width: "auto" }}
-          maxDisplaySelect={2}
-        />
+          <Dropdown
+            backgroundColor="#0b0c10"
+            // searchable
+            // label="Genre"
+            darkMode
+            options={genreOptions}
+            accentColor={accentColor}
+            selectedKeys={selectedGenres}
+            onChange={(v) => setSelectedGenres(Array.isArray(v) ? v.map(String) : [String(v)])}
+            multiSelect
+            placeholder="Filter Genre..."
+            showSelectAll={true}
+            style={{ width: "auto" }}
+            maxDisplaySelect={2}
+            isOpen={openKey === "genre"}
+            onOpenChange={(next) => setOpenKey(next ? "genre" : null)}
 
-        <Dropdown
-          backgroundColor="#0b0c10"
-          searchable
-          // label="Flavor"
-          darkMode
-          options={flavorOptions}
-          accentColor={accentColor}
-          selectedKeys={selectedFlavors}
-          onChange={(v) => setSelectedFlavors(Array.isArray(v) ? v.map(String) : [String(v)])}
-          multiSelect
-          showSelectAll={true}
-          placeholder="Filter Flavor..."
-          style={{ width: "auto" }}
-        />
+          />
 
-        <Dropdown
-          backgroundColor="#0b0c10"
-          searchable
-          // label="Keywords"
-          fontColor={accentColor}
-          darkMode
-          options={keywordOptions}
-          accentColor={accentColor}
-          selectedKeys={selectedKeywords}
-          onChange={(v) => setSelectedKeywords(Array.isArray(v) ? v.map(String) : [String(v)])}
-          multiSelect
-          showSelectAll={true}
-          placeholder="Filter Keyword..."
-          style={{ width: "auto" }}
-        />
+          <Dropdown
+            backgroundColor="#0b0c10"
+            // searchable
+            // label="Flavor"
+            darkMode
+            options={flavorOptions}
+            accentColor={accentColor}
+            selectedKeys={selectedFlavors}
+            onChange={(v) => setSelectedFlavors(Array.isArray(v) ? v.map(String) : [String(v)])}
+            multiSelect
+            showSelectAll={true}
+            placeholder="Filter Flavor..."
+            style={{ width: "auto" }}
+            isOpen={openKey === "flavor"}
+            onOpenChange={(next) => setOpenKey(next ? "flavor" : null)}
+          />
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",      // centers items on the cross-axis
-            gap: 8,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <Button
-              label="Clear Filters"
-              accentColor="#242636"
-              borderColor="transparent"
-              style={{ borderRadius: 4, fontSize: "11px", height: "23px", lineHeight: 1 }} // line-height helps text centering
-              onClick={resetAll}
-            />
+          <Dropdown
+            backgroundColor="#0b0c10"
+            // searchable
+            // label="Keywords"
+            fontColor={accentColor}
+            darkMode
+            options={keywordOptions}
+            accentColor={accentColor}
+            selectedKeys={selectedKeywords}
+            onChange={(v) => setSelectedKeywords(Array.isArray(v) ? v.map(String) : [String(v)])}
+            multiSelect
+            showSelectAll={true}
+            placeholder="Filter Keyword..."
+            style={{ width: "auto" }}
+            isOpen={openKey === "keyword"}
+            onOpenChange={(next) => setOpenKey(next ? "keyword" : null)}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",      // centers items on the cross-axis
+              gap: 8,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <Button
+                label="Clear Filters"
+                accentColor="#242636"
+                borderColor="transparent"
+                style={{ borderRadius: 4, fontSize: "11px", height: "23px", lineHeight: 1 }} // line-height helps text centering
+                onClick={resetAll}
+              />
+            </div>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              {tagText?.length > 0 && (
+                <Button
+                  label={`${tagText} ✕`}
+                  accentColor="#242636"
+                  borderColor="transparent"
+                  style={{ borderRadius: 4, fontSize: "11px", height: "23px", lineHeight: 1 }} // line-height helps text centering
+                  onClick={() => resetAll()}
+                />
+              )}
+            </div>
+
+
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <SortDropdown
+                sortMode={sortMode}
+                sortAsc={sortAsc}
+                onChange={(mode, asc) => { setSortMode(mode); setSortAsc(asc); }}
+              />
+            </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center" }}>
-          {tagText?.length > 0 && (
-            <Button
-              label={`${tagText} ✕`}
-              accentColor="#242636"
-              borderColor="transparent"
-              style={{ borderRadius: 4, fontSize: "11px", height: "23px", lineHeight: 1 }} // line-height helps text centering
-              onClick={() => resetAll()}
-            />
-          )}
-          </div>
-
-
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <SortDropdown
-              sortMode={sortMode}
-              sortAsc={sortAsc}
-              onChange={(mode, asc) => { setSortMode(mode); setSortAsc(asc); }}
-            />
-          </div>
-        </div>
 
 
 
-      </section>
-      {/* Poster grid */}
-      <main className="ml-grid">
-        {loading && <div className="ml-loading">Loading 4k Blu-ray Collection...</div>}
-        {visible.length === 0 && <div className="ml-loading"></div>}
-        {!loading &&
-          visible.map((m) => (
-            <article key={m.imdbId} className="ml-card" onClick={() => setOpenMovie(m)}>
-              <div className="ml-card__posterWrap">
-                {m.posterUrl ? (
-                  <img className="ml-card__poster" src={m.posterUrl} alt={m.title} />
-                ) : (
-                  <div className="ml-card__placeholder">{m.title}</div>
-                )}
-              </div>
-              <div className="ml-card__title">{`${m.title}`}</div>
-            </article>
-          ))}
-      </main>
+        </section>
+        {/* Poster grid */}
+        <main className="ml-grid">
+          {loading && <div className="ml-loading">Loading 4k Blu-ray Collection...</div>}
+          {visible.length === 0 && <div className="ml-loading"></div>}
+          {!loading &&
+            visible.map((m) => (
+              <article key={m.imdbId} className="ml-card" onClick={() => setOpenMovie(m)}>
+                <div className="ml-card__posterWrap">
+                  {m.posterUrl ? (
+                    <img className="ml-card__poster" src={m.posterUrl} alt={m.title} />
+                  ) : (
+                    <div className="ml-card__placeholder">{m.title}</div>
+                  )}
+                </div>
+                <div className="ml-card__title">{`${m.title}`}</div>
+              </article>
+            ))}
+        </main>
 
-      {/* Mobile sheet with details */}
-      <MovieSheet movie={openMovie} onClose={() => setOpenMovie(null)}
-        onTagClicked={onTagClicked} />
+        {/* Mobile sheet with details */}
+        <MovieSheet movie={openMovie} onClose={() => setOpenMovie(null)}
+          onTagClicked={onTagClicked} />
       </div>
-      
+
     </div>
   );
 };

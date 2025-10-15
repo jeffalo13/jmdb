@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import "./SortDropdown.css";
 import { Button } from "./Button";
 
-export type SortMode = "alpha" | "year";
+export type SortMode = "alpha" | "year" | "runtime";
 
 export function SortDropdown({
   sortMode,
@@ -20,7 +20,7 @@ export function SortDropdown({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const arrow = sortAsc ? "↑" : "↓";
-  const label = sortMode === "alpha" ? "Title" : "Year";
+  const label = sortMode === "alpha" ? "Title" : sortMode === "year" ? "Year" : "Runtime";
 
   // open/close + outside click
   useEffect(() => {
@@ -88,6 +88,16 @@ export function SortDropdown({
         >
           <span>Title</span>
           {sortMode === "alpha" && <span className="ml-dd-itemArrow">{arrow}</span>}
+        </button>
+        <button
+          type="button"
+          role="menuitemradio"
+          aria-checked={sortMode === "runtime"}
+          className={`ml-dd-item ${sortMode === "runtime" ? "is-active" : ""}`}
+          onClick={() => select("runtime")}
+        >
+          <span>Runtime</span>
+          {sortMode === "year" && <span className="ml-dd-itemArrow">{arrow}</span>}
         </button>
         <button
           type="button"

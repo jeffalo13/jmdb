@@ -79,12 +79,16 @@ export const SearchBox = React.forwardRef<HTMLInputElement, SearchBoxProps>(({xB
                 if (typeof ref === "function") ref(node);
                 else if (ref) (ref as React.RefObject<HTMLInputElement | null>).current = node;
             }}
-            type="text"
+            type="search"
+            inputMode="search"
             rightIconProp={rightIcon}
             value={value}
             onChange={handleChange}
-            
             autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            name="q"
         />
     );
 });

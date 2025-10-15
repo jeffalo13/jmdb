@@ -53,7 +53,6 @@ export async function tmdbGetMovieByImdbId(imdbId: string, signal?: AbortSignal)
   const importantCrew = ["Director"]
 
   const crew = (d?.credits.crew as any[]).filter(c => importantCrew.includes(c.job)).map(d => d.name);
-  console.log(crew);
 
   return {
     id: imdbId,
@@ -69,6 +68,7 @@ export async function tmdbGetMovieByImdbId(imdbId: string, signal?: AbortSignal)
     posterUrl: img(d?.poster_path),
     backdropUrl,
     altPosters,
-    tagline: d?.tagline ?? ""
+    tagline: d?.tagline ?? "",
+    runtime: d?.runtime
   };
 }

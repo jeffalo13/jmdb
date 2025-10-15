@@ -1,4 +1,4 @@
-export type SortKey = "alpha" | "year";
+export type SortKey = "alpha" | "year" | "runtime";
 
 export interface Movie {
   id: string;       // local id (use imdbId)
@@ -15,4 +15,5 @@ export interface Movie {
   backdropUrl: string;
   altPosters: string[];
   tagline: string;
+  runtime: number;
 }

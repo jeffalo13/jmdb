@@ -138,7 +138,6 @@ export function prettyPrintLogsForEmail(logs?: LogEntry[]): any[] | undefined {
         })
         .join('\n')
 
-        // console.log(text);
         return text;
       }
     )
@@ -154,7 +153,6 @@ export  function formatBugReport_AdaptiveCardJSON(
 
     const containerKeyStringFormat = 'StackTraceContainer';
 
-    // console.log(consoleLogs)
 
   const adaptiveCard = {
     type: "AdaptiveCard",
@@ -250,7 +248,6 @@ export function prettyPrintLogsContainersMSTeams(logs: LogEntry[], containerKeyF
         })
         .join('\n')
 
-        // console.log(text);
     return {
       type: "Container",
       id: `${containerKeyFormat}${i}`,

@@ -157,6 +157,9 @@ export interface DropdownProps {
     label?: string;
 
     backgroundColor?: string;
+
+    isOpen?: boolean;                     // controlled
+  onOpenChange?: (open: boolean) => void;
 }
 
 const DropdownMenu: React.FC<{
@@ -218,7 +221,7 @@ const DropdownOptionRow: React.FC<{
     onOnly: (e: React.MouseEvent) => void;
 }> = ({
     option, checked, multiSelect, accentColor, hovered: hovered, onlyLabel, menuTextColor, bg, darkMode,
-    onHover, onSelect, onOnly,
+    onHover, onSelect, onOnly
 }) => (
         <div
             style={{
@@ -354,14 +357,22 @@ export const Dropdown: React.FC<DropdownProps> = ({
     hoverColor,
     darkMode = false,
     searchable = false,
-    xButtonColor, label
+    xButtonColor, label, isOpen, onOpenChange
 }) => {
-    const [isOpen, setIsOpen] = useState(false);
+    const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+    const open = isOpen ?? uncontrolledOpen;
     const [hoverIdx, setHoverIdx] = useState<number | null>(null);
     const [searchText, setSearchText] = useState("");
     const wrapperRef = useRef<HTMLDivElement>(null);
     const Width = style?.width ?? 400;
     // const [selectAllText, setSelectAllText] = useState(selectAllLabel);
+
+    const setOpen = (next: boolean) => {
+        onOpenChange?.(next);
+        if (isOpen === undefined) setUncontrolledOpen(next);
+    };
+
+    const toggleOpen = () => setOpen(!open);
 
     const PlaceHolder = placeholder ?? (searchable ? "Search..." : "Select...");
     const SelectAllLabel = selectAllLabel ?? "Select All";
@@ -381,34 +392,22 @@ export const Dropdown: React.FC<DropdownProps> = ({
         )
     const XButtonColor = xButtonColor ?? (darkMode ? LightGray : MidnightGray)
 
-    const allowSearch = isOpen && searchable;
-
     useEffect(() => {
-        if (!isOpen) return;
+        if (!open) return;
         function handleClick(event: MouseEvent) {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
+                setOpen(false);
             }
         }
         document.addEventListener("mousedown", handleClick);
         return () => document.removeEventListener("mousedown", handleClick);
-    }, [isOpen]);
+    }, [open]);
 
-    // useEffect(() => {
-    //     if (searchable && searchText)
-    //     {
-    //         setSelectAllText(`Select All Matches`)
-    //     }
-    //     else
-    //     {
-    //         setSelectAllText(selectAllLabel)
-    //     }
-    // }, [searchText, selectAllLabel])
 
     //clear search when closed
     useEffect(() => {
-        if (!isOpen) setSearchText("");
-    }, [isOpen]);
+        if (!open) setSearchText("");
+    }, [open]);
 
     const keysArray = Array.isArray(selectedKeys)
         ? selectedKeys
@@ -425,7 +424,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
             }
         } else {
             onChange(optValue);
-            setIsOpen(false);
+            setOpen(false);
             setSearchText("");
         }
     }
@@ -500,6 +499,21 @@ export const Dropdown: React.FC<DropdownProps> = ({
     //     (!searchable ? keysArray.length === options.length : keysArray.length === filteredOptions.length)
 
 
+    const inputEl = useRef<HTMLInputElement>(null);
+    const allowSearch = searchable && open;
+
+    useEffect(() => {
+        if (allowSearch) {
+            // Let React commit readOnly=false, then focus
+            setTimeout(() => inputEl.current?.focus({ preventScroll: true }), 0);
+        }
+    }, [allowSearch]);
+
+    const handlePointerDownOnInput = (e: React.PointerEvent) => {
+        if (disabled) return;
+        e.preventDefault();
+        toggleOpen();
+    };
 
     return (
         <div
@@ -521,11 +535,13 @@ export const Dropdown: React.FC<DropdownProps> = ({
                 xButtonColor={XButtonColor}
                 value={allowSearch ? searchText : displayLabel}
                 onChange={e => {
-                    if (searchable && isOpen) {
+                    if (searchable && open) {
                         setSearchText(e.target.value);
                     }
                 }}
-                onClick={() => !disabled && setIsOpen(!isOpen)}
+                // onClick={() => !disabled && setIsOpen(!isOpen)}
+                onPointerDown={handlePointerDownOnInput}
+                // onTouchEnd={() => !disabled && setIsOpen(!isOpen)}
                 disabled={disabled}
                 readOnly={!allowSearch}
                 placeholder={PlaceHolder}
@@ -538,7 +554,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                     minWidth: 0,
                 }}
             />
-            {isOpen && !disabled && (
+            {open && !disabled && (
                 <DropdownMenu
                     style={{
                         position: "absolute",

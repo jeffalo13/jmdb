@@ -92,6 +92,13 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
 
   }
 
+    const runtimePretty = (runtime: number) => {
+    const hour = Math.floor(runtime / 60);
+    const minutes = runtime % 60;
+
+    return `${hour}h ${minutes}m`
+  }
+
 
 
   return (
@@ -108,6 +115,7 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
           <h2 className="mp-title">
             {movie.title}{" "}
             {Number.isFinite(movie.year) && <span className="mp-year">({movie.year})</span>}
+            <span className="mp-runtime">{runtimePretty(movie.runtime)}</span>
           </h2>
           <button className="mp-close" onClick={handleClose} aria-label="Close">✕</button>
         </header>
@@ -154,7 +162,7 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
         <div className="mp-tagline">{movie.tagline}</div>
 
         {/* Meta */}
-          <div className="mp-meta">
+          <div className="mp-meta">                      
             {movie.genres.length > 0 && (
               <div className="mp-row">
                 {movie.genres.map((g) => (
@@ -216,10 +224,16 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
                 ))}
               </div>
             )}
+            
+
 
           </div>
 
           {movie.plot && <p className="mp-plot">{movie.plot}</p>}
+
+
+
+
 
 
         {/* {movie.actors.length > 0 && (
