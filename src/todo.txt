@@ -1,5 +1,2 @@
-when you type a failed search it shrinks when the movies disappear.  1 is fine 0 is nothing
 
 search still not popping up with keyboard for dropdowns
-
-add cast serach and cast chips, muted tho and toggle
