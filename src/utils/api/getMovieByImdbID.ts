@@ -21,6 +21,7 @@ export async function getMovieByImdbId(imdbId: string, signal?: AbortSignal): Pr
     keywords: [],
     plot: "",
     posterUrl: "",
-    tagline: ""
+    tagline: "",
+    runtime: NaN
   };
 }
