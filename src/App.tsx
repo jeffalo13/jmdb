@@ -31,17 +31,27 @@ const App: React.FC = () => {
     return toArray;
   }
 
-  const searchTitle = (movieTitle: string, searchTerm: string) => {
-    const t = searchTerm.trim().toLowerCase();
-    return movieTitle.toLowerCase().includes(t);
-  }
+const matchesSearchTerm = (movie: Movie, raw: string) => {
+  const t = raw.trim().toLowerCase();
+  if (!t) return true; // or false, depending on your UX
+
+  const inArr = (arr?: string[]) =>
+    Array.isArray(arr) && arr.some(s => s?.toLowerCase().includes(t));
+
+  return (
+    movie.title.toLowerCase().includes(t) ||
+    inArr(movie.genres) ||
+    inArr(movie.flavors) ||
+    inArr(movie.keywords)
+  );
+};
 
 
   const genreOptions: DropdownOption[] = useMemo(() => {
     const pool = movies.filter((m) =>
       (selectedFlavors.length ? m.flavors.some((f) => selectedFlavors.includes(f)) : true) &&
       (selectedKeywords.length ? m.keywords.some((k) => selectedKeywords.includes(k)) : true) &&
-      (!term || searchTitle(m.title, term))
+      (!term || matchesSearchTerm(m, term))
     );
     const genres = pool.flatMap((m) => m.genres);
     return toOptions(genres);
@@ -51,7 +61,7 @@ const App: React.FC = () => {
     const pool = movies.filter((m) =>
       (selectedGenres.length ? m.genres.some((g) => selectedGenres.includes(g)) : true) &&
       (selectedKeywords.length ? m.keywords.some((k) => selectedKeywords.includes(k)) : true) &&
-      (!term || searchTitle(m.title, term))
+      (!term || matchesSearchTerm(m, term))
     );
     const flavors = pool.flatMap((m) => m.flavors);
     return toOptions(flavors);
@@ -61,7 +71,7 @@ const App: React.FC = () => {
     const pool = movies.filter((m) =>
       (selectedGenres.length ? m.genres.some((g) => selectedGenres.includes(g)) : true) &&
       (selectedFlavors.length ? m.flavors.some((f) => selectedFlavors.includes(f)) : true) &&
-      (!term || searchTitle(m.title, term))
+      (!term || matchesSearchTerm(m, term))
     );
     const keywords = pool.flatMap((m) => m.keywords);
     return toOptions(keywords);
@@ -76,7 +86,7 @@ const App: React.FC = () => {
       const byGenre = selectedGenres.length ? m.genres.some((g) => selectedGenres.includes(g)) : true;
       const byFlavor = selectedFlavors.length ? m.flavors.some((f) => selectedFlavors.includes(f)) : true;
       const byKeyword = selectedKeywords.length ? m.keywords.some((f) => selectedKeywords.includes(f)) : true;
-      const bySearch = t ? searchTitle(m.title, t) : true; // simplify for now
+      const bySearch = t ? matchesSearchTerm(m, t) : true; // simplify for now
       return byGenre && byFlavor && bySearch && byKeyword;
     });
   }, [movies, selectedGenres, selectedFlavors, selectedKeywords, term]);
@@ -177,7 +187,7 @@ const App: React.FC = () => {
           darkMode
           value={term}
           onChange={(e) => setTerm(e.target.value)}
-          placeholder="Search Movies..."
+          placeholder="Search Anything..."
         />
 
         <Dropdown
@@ -189,7 +199,7 @@ const App: React.FC = () => {
           selectedKeys={selectedGenres}
           onChange={(v) => setSelectedGenres(Array.isArray(v) ? v.map(String) : [String(v)])}
           multiSelect
-          searchable placeholder="Filter Genre..."
+          placeholder="Filter Genre..."
           showSelectAll={true}
           style={{ width: "auto" }}
           maxDisplaySelect={2}
@@ -205,7 +215,7 @@ const App: React.FC = () => {
           onChange={(v) => setSelectedFlavors(Array.isArray(v) ? v.map(String) : [String(v)])}
           multiSelect
           showSelectAll={true}
-          searchable placeholder="Filter Flavor..."
+          placeholder="Filter Flavor..."
           style={{ width: "auto" }}
         />
 
@@ -220,7 +230,7 @@ const App: React.FC = () => {
           onChange={(v) => setSelectedKeywords(Array.isArray(v) ? v.map(String) : [String(v)])}
           multiSelect
           showSelectAll={true}
-          searchable placeholder="Filter Keyword..."
+          placeholder="Filter Keyword..."
           style={{ width: "auto" }}
         />
         <div
@@ -233,14 +243,14 @@ const App: React.FC = () => {
         >
           <div style={{ display: "flex", alignItems: "center" }}>
             <Button
-              label="Reset Filters"
+              label="Clear Filters"
               accentColor="#242636"
               borderColor="transparent"
               style={{ borderRadius: 4, fontSize: "11px", height:"23px", lineHeight: 1}} // line-height helps text centering
               onClick={clearFilters}
             />
           </div>
-          <div style={{ display: "flex", alignItems: "center" }}>
+          {/* <div style={{ display: "flex", alignItems: "center" }}>
             <Button
               label="Back to Top"
               accentColor="#242636"
@@ -248,7 +258,7 @@ const App: React.FC = () => {
               style={{ borderRadius: 4, fontSize: "11px", height:"23px", lineHeight: 1}} // line-height helps text centering
               onClick={scrollToTop}
             />
-          </div>
+          </div> */}
 
           <div style={{ display: "flex", alignItems: "center" }}>
             <SortDropdown
