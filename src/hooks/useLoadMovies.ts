@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Movie } from "../types/movie";
-import { getMovieByImdbId as tmdbGet } from "../utils/api/tmdb";
+import { tmdbGetMovieByImdbId as tmdbGet } from "../utils/api/tmdb";
 
 export function useLoadMovies(ids: string[]) {
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -25,7 +25,7 @@ export function useLoadMovies(ids: string[]) {
             results.push({
               id, imdbId: id, title: id, year: NaN,
               genres: [], flavors: [], actors: [], keywords: [],
-              plot: "", posterUrl: ""
+              plot: "", posterUrl: "", altPosters: [], backdropUrl: ""
             });
             setErrors(prev => ({ ...prev, [id]: e?.message ?? "error" }));
           }

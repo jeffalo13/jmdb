@@ -15,6 +15,9 @@ export async function getMovieByImdbId(imdbId: string, signal?: AbortSignal): Pr
     genres: [],
     flavors: [],
     actors: [],
+    altPosters: [],
+    backdropUrl: "",
+    keywords: [],
     plot: "",
     posterUrl: "",
   };
