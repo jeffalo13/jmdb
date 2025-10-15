@@ -5,6 +5,7 @@
   --muted: #9a9aaa;
   --border: #262738;
   --accent: #8aa4ff;
+  --chip-alt-bg: #3c4874;
   --chip-bg: #242636;        /* chip (primary) */
   --chip-muted-bg: #1e202d;  /* chip (muted/secondary) */
 }
@@ -142,6 +143,18 @@
   transform: translateY(-0.5px);
 }
 
+.mp-tagline {
+  background-color: #363b5380;
+  border-radius: 4px;
+  padding: 2px 8px;          /* little padding on the ends */
+  width: fit-content;         /* only as wide as needed */
+  margin: 0 auto;             /* center horizontally */
+  text-align: center;         /* center the text inside */
+  font-style: italic;
+  font-size: 10px;
+  margin-top: 10px;
+}
+
 /* Meta */
 .mp-meta { padding: 12px 16px 0; }
 
@@ -165,6 +178,13 @@
 .mp-chip--muted {
   background: var(--chip-muted-bg);
   color: var(--muted);
+}
+
+.mp-chip--special {
+  background: var(--chip-alt-bg);
+  color: var(--muted);
+  font-style: italic;
+  
 }
 
 /* Chip as a button/toggle */
@@ -192,17 +212,6 @@
   color: #d0d0d5;
   font-size: 14px;
   line-height: 1.5;
-}
-
-.mp-cast {
-  padding: 0 16px 20px;
-  color: #c5c5cc;
-  font-size: 13px;
-  line-height: 1.4;
-}
-.mp-cast strong {
-  color: var(--text);
-  font-weight: 600;
 }
 
 /* Scrollbar */

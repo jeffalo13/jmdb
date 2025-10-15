@@ -374,6 +374,7 @@ export const KEYWORD_TO_FLAVORS: Record<string, Flavor[]> = {
   "super computer": ["Artificial Intelligence","Cyberpunk"],
   "ai rebellion": ["Artificial Intelligence","Dystopian Future"],
   "hyena": ["Mythic Religious Fantasy"],
+  "puzzle": ["Psychological Thriller", "Suspense Thriller"],
 
   // Horror brand anchors
   "the conjuring universe": ["Supernatural Horror","Possession Exorcism","Occult Horror"],

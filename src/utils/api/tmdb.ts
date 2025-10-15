@@ -50,18 +50,25 @@ export async function tmdbGetMovieByImdbId(imdbId: string, signal?: AbortSignal)
 
   const flavors: string[] = getFlavorsForKeywords(rawKeywords);
 
+  const importantCrew = ["Director"]
+
+  const crew = (d?.credits.crew as any[]).filter(c => importantCrew.includes(c.job)).map(d => d.name);
+  console.log(crew);
+
   return {
     id: imdbId,
     imdbId,
     title: d?.title ?? imdbId,
     year: d?.release_date ? Number(String(d.release_date).slice(0, 4)) : NaN,
     genres: (d?.genres ?? []).map((g: { name?: string }) => g?.name).filter(Boolean) as string[],
-    keywords: uniq(rawKeywords),   // <-- all keywords, normalized + deduped
-    flavors: uniq(flavors),                   // <-- leave empty for now
+    keywords: uniq(rawKeywords),  
+    flavors: uniq(flavors),               
     actors: (d?.credits?.cast ?? []).slice(0, 10).map((c: { name?: string }) => c?.name).filter(Boolean) as string[],
+    crew: uniq(crew),
     plot: d?.overview ?? "",
     posterUrl: img(d?.poster_path),
     backdropUrl,
-    altPosters
+    altPosters,
+    tagline: d?.tagline ?? ""
   };
 }

@@ -9,8 +9,10 @@ export interface Movie {
   flavors: string[];
   keywords: string[];
   actors: string[];
+  crew: string[];
   plot: string;
   posterUrl: string;
   backdropUrl: string;
   altPosters: string[];
+  tagline: string;
 }

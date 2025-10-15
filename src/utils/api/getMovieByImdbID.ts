@@ -15,10 +15,12 @@ export async function getMovieByImdbId(imdbId: string, signal?: AbortSignal): Pr
     genres: [],
     flavors: [],
     actors: [],
+    crew: [],
     altPosters: [],
     backdropUrl: "",
     keywords: [],
     plot: "",
     posterUrl: "",
+    tagline: ""
   };
 }

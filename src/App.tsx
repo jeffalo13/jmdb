@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import "./App.css";
 
 // import { IMDB_IDS } from "./data/imdbIDs";
-import { useCachedMovies } from "./hooks/useCachedMovies";
+import { useLoadMovies } from "./hooks/useLoadMovies";
 import type { Movie, SortKey } from "./types/movie";
 
 import { Dropdown, type DropdownOption } from "./components/Dropdown";
@@ -17,6 +17,7 @@ const App: React.FC = () => {
   const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
   const [selectedCast, setSelectedCast] = useState<string[]>([]);
+  const [selectedCrew, setSelectedCrew] = useState<string[]>([]);
   const [term, setTerm] = useState("");
   const [openMovie, setOpenMovie] = useState<Movie | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
@@ -26,7 +27,7 @@ const App: React.FC = () => {
 
   const {movieIDs, loadingIDs} = useMovieIDs();
 
-  const { movies, loadingMovieInfo } = useCachedMovies(movieIDs as unknown as string[]);
+  const { movies, loadingMovieInfo } = useLoadMovies(movieIDs as unknown as string[]);
 
   const loading = loadingIDs || loadingMovieInfo;
 
@@ -93,8 +94,9 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
       const byFlavor = selectedFlavors.length ? m.flavors.some((f) => selectedFlavors.includes(f)) : true;
       const byKeyword = selectedKeywords.length ? m.keywords.some((k) => selectedKeywords.includes(k)) : true;
       const byCast = selectedCast.length ? m.actors.some((a) => selectedCast.includes(a)) : true;
+      const byCrew = selectedCrew.length ? m.crew.some((c) => selectedCrew.includes(c)) : true;
       const bySearch = t ? matchesSearchTerm(m, t) : true; // simplify for now
-      return byGenre && byFlavor && bySearch && byKeyword && byCast;
+      return byGenre && byFlavor && bySearch && byKeyword && byCast && byCrew;
     });
   }, [movies, selectedGenres, selectedFlavors, selectedKeywords, selectedCast, term]);
 
@@ -135,6 +137,8 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
     setSelectedGenres([genre]);
 
     //resets
+    setSelectedCrew([]);
+    setSelectedCast([]);
     setSelectedFlavors([]);
     setSelectedKeywords([]);
     setTerm("");
@@ -145,6 +149,8 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
     setSelectedFlavors([flavor])
 
     //resets
+    setSelectedCrew([]);
+    setSelectedCast([]);
     setSelectedGenres([]);
     setSelectedKeywords([]);
     setTerm("");
@@ -154,6 +160,8 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
     setSelectedKeywords([keyword]);
 
     //resets
+    setSelectedCrew([]);
+    setSelectedCast([]);
     setSelectedFlavors([]);
     setSelectedGenres([]);
     setTerm("");
@@ -164,6 +172,7 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
     setSelectedCast([cast]);
 
     //resets
+    setSelectedCrew([]);
     setSelectedKeywords([]);
     setSelectedFlavors([]);
     setSelectedGenres([]);
@@ -171,7 +180,17 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
     scrollToTop();
   }
 
+  const onCrewClicked = (crew: string) => {
+    setSelectedCrew([crew]);
 
+    //resets
+    setSelectedCast([]);
+    setSelectedKeywords([]);
+    setSelectedFlavors([]);
+    setSelectedGenres([]);
+    setTerm("");
+    scrollToTop();
+  }
 
   const logoClicked = () => {
     clearFilters();
@@ -188,6 +207,7 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
     setSelectedFlavors([]);
     setSelectedKeywords([]);
     setSelectedCast([]);
+    setSelectedCrew([]);
     setTerm("");
     setSortAsc(true);
     setSortMode("alpha")
@@ -321,7 +341,7 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
 
       {/* Mobile sheet with details */}
       <MovieSheet movie={openMovie} onClose={() => setOpenMovie(null)} 
-      onFlavorClicked={onFlavorClicked} onGenreClicked={onGenreClicked} onKeywordClicked={onKeywordClicked} onCastClicked={onCastClicked} />
+      onFlavorClicked={onFlavorClicked} onGenreClicked={onGenreClicked} onKeywordClicked={onKeywordClicked} onCastClicked={onCastClicked} onCrewClicked={onCrewClicked} />
     </div>
   );
 };
