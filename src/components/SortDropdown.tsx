@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import "./SortDropdown.css";
+import { Button } from "./Button";
 
 export type SortMode = "alpha" | "year";
 
@@ -61,23 +62,20 @@ export function SortDropdown({
     setOpen(false);
   };
 
+  const sortBtnTxt = `${label} ${arrow}`
+
   return (
     <div
       ref={wrapRef}
       className={`ml-dd ${open ? "is-open" : ""} ${alignEnd ? "ml-dd--end" : ""} ${openUp ? "ml-dd--up" : ""}`}
     >
-      <button
-        type="button"
-        className="mp-chip ml-dd-trigger"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen(v => !v)}
-        title="Sort (click to choose, click current to flip)"
-      >
-        {/* <span className="ml-dd-icon" aria-hidden>≡</span> */}
-        <span className="ml-dd-text">{`${label}`}</span>
-        <span className="ml-dd-arrow">{arrow}</span>
-      </button>
+      <Button
+                    label={sortBtnTxt}
+                    accentColor="#242636"
+                    borderColor="transparent"
+                    style={{ borderRadius: 4, fontSize: "11px", height: "23px", lineHeight: 1 }} // line-height helps text centering
+                    onClick={() => setOpen(v => !v)}
+                  />
 
       {/* Always in DOM; CSS toggles visibility/placement */}
       <div role="menu" ref={menuRef} className="ml-dd-menu">

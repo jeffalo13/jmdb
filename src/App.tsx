@@ -22,8 +22,9 @@ const App: React.FC = () => {
   const [openMovie, setOpenMovie] = useState<Movie | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
   const [sortMode, setSortMode] = useState<SortKey>("alpha");
+  const [tagText, setTagText] = useState("");
 
-  type TagType = "genre" | "flavor" | "keyword" | "cast" | "crew" | "search";
+  type TagType = "genre" | "flavor" | "keyword" | "cast" | "crew" | "search" | "tagText";
 
   const applyMap: Record<TagType, (v: string) => void> = {
     genre: (v) => setSelectedGenres([v]),
@@ -31,8 +32,9 @@ const App: React.FC = () => {
     keyword: (v) => setSelectedKeywords([v]),
     cast: (v) => setSelectedCast([v]),
     crew: (v) => setSelectedCrew([v]),
-    search: (v) => setTerm(v),              // <- string state
-    
+    search: (v) => setTerm(v),
+    tagText: (v) => setTagText(v)
+
   };
 
   // resets
@@ -42,7 +44,8 @@ const App: React.FC = () => {
     () => setSelectedKeywords([]),
     () => setSelectedCast([]),
     () => setSelectedCrew([]),
-    () => setTerm(""),                       // <- string state
+    () => setTerm(""),
+    () => setTagText(""),
   ];
 
 
@@ -159,6 +162,7 @@ const App: React.FC = () => {
   const onTagClicked = (type: TagType, value: string) => {
     resetAll();
     applyMap[type](value);
+    setTagText(`${value}`)
   };
 
   const logoClicked = () => {
@@ -170,11 +174,11 @@ const App: React.FC = () => {
   }
 
   const resetAll = () => {
-  resetFunctions.forEach(fn => fn());
-      setSortAsc(true);
+    resetFunctions.forEach(fn => fn());
+    setSortAsc(true);
     setSortMode("alpha")
-  scrollToTop();
-};
+    scrollToTop();
+  };
 
 
 
@@ -244,6 +248,7 @@ const App: React.FC = () => {
           placeholder="Filter Keyword..."
           style={{ width: "auto" }}
         />
+
         <div
           style={{
             display: "flex",
@@ -261,15 +266,18 @@ const App: React.FC = () => {
               onClick={resetAll}
             />
           </div>
-          {/* <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+          {tagText?.length > 0 && (
             <Button
-              label="Back to Top"
+              label={`${tagText} ✕`}
               accentColor="#242636"
               borderColor="transparent"
-              style={{ borderRadius: 4, fontSize: "11px", height:"23px", lineHeight: 1}} // line-height helps text centering
-              onClick={scrollToTop}
+              style={{ borderRadius: 4, fontSize: "11px", height: "23px", lineHeight: 1 }} // line-height helps text centering
+              onClick={() => resetAll()}
             />
-          </div> */}
+          )}
+          </div>
+
 
           <div style={{ display: "flex", alignItems: "center" }}>
             <SortDropdown
