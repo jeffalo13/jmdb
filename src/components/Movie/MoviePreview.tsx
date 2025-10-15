@@ -8,15 +8,17 @@ interface Props {
   onGenreClicked: (genre: string) => void;
   onFlavorClicked: (flavor: string) => void;
   onKeywordClicked: (keyword: string) => void;
+  onCastClicked: (cast: string) => void;
 }
 
 const SWIPE_PX = 30;
 
-const MoviePreview: React.FC<Props> = ({ movie, onClose, onGenreClicked, onFlavorClicked, onKeywordClicked }) => {
+const MoviePreview: React.FC<Props> = ({ movie, onClose, onGenreClicked, onFlavorClicked, onKeywordClicked, onCastClicked }) => {
   const [idx, setIdx] = useState(0);
   const startX = useRef<number | null>(null);
   const swiping = useRef(false);
   const [showKeywords, setShowKeywords] = useState(false);
+  const [showCast, setShowCast] = useState(false);
   const [exiting, setExiting] = useState(false);
 
   // primary first, then unique alt posters
@@ -92,6 +94,9 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onGenreClicked, onFlavo
       case "keyword":
         onKeywordClicked(tag)
         break;
+      case "cast":
+        onCastClicked(tag);
+        break;
     }
 
     handleClose();
@@ -157,31 +162,60 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onGenreClicked, onFlavo
           {movie.genres.length > 0 && (
             <div className="mp-row">
               {movie.genres.map((g) => (
-                <span key={g} className="mp-chip" onClick={() => handleTagClicked("genre", g)}>{g}</span>
+                <button key={g} className={`mp-chip mp-chip-btn`} onClick={() => handleTagClicked("genre", g)}>{g}</button>
               ))}
             </div>
           )}
           {movie.flavors?.length > 0 && (
             <div className="mp-row">
               {movie.flavors.map((f) => (
-                <span key={f} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("flavor", f)}>{f}</span>
+                <button key={f} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("flavor", f)}>{f}</button>
               ))}
             </div>
           )}
-          <button
-            type="button"
-            className={`mp-chip mp-chip-btn`}
-            aria-pressed={showKeywords}
-            onClick={() => setShowKeywords(!showKeywords)}
-          >{`${showKeywords ? "Hide" : "Show"} Keywords`}</button>
-          {showKeywords && (
 
+          <div className="mp-vrow">
+            {/* keyword toggle */}
+            <button
+              type="button"
+              className="mp-chip mp-chip-btn"
+              aria-pressed={showKeywords}
+              onClick={() => setShowKeywords(!showKeywords)}
+            >
+              {showKeywords ? "Hide" : "Show"} Keywords
+            </button>
+          </div>
+          {showKeywords && (
             <div className="mp-row">
               {movie.keywords.map((k) => (
-                <span key={k} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("keyword", k)}>{k}</span>
+                <button key={k} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("keyword", k)}>
+                  {k}
+                </button>
               ))}
             </div>
           )}
+
+          {/* cast toggle */}
+          <div className="mp-vrow">
+            <button
+              type="button"
+              className="mp-chip mp-chip-btn"
+              aria-pressed={showCast}
+              onClick={() => setShowCast(!showCast)}
+            >
+              {showCast ? "Hide" : "Show"} Cast
+            </button>
+          </div>
+          {showCast && (
+            <div className="mp-row">
+              {movie.actors.map((a) => (
+                <button key={a} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("cast", a)}>
+                  {a}
+                </button>
+              ))}
+            </div>
+          )}
+
         </div>
 
         {movie.plot && <p className="mp-plot">{movie.plot}</p>}

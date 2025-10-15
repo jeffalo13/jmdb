@@ -3,21 +3,23 @@ import { useEffect, useMemo, useState } from "react";
 import type { Movie } from "../types/movie";
 import { getMovieByImdbId } from "../utils/api/getMovieByImdbID";
 
-// Basic localStorage cache with TTL
-const CACHE_PREFIX = "mlib:v16:";
-const CACHE_TTL_MS = 1000 * 60 * 60 * 1; // 1 hour
+// ----- config
+const CACHE_PREFIX = "mlib:v19:";               // bump when cache shape changes
+const IDS_SIG_KEY = `${CACHE_PREFIX}@ids-sig`;  // normalized list signature
 
-type CacheRecord = { movie: Movie; ts: number };
-const key = (id: string) => `${CACHE_PREFIX}${id}`;
+// ----- helpers
+const norm = (s: string) => s.trim().toLowerCase();
+const cacheKey = (id: string) => `${CACHE_PREFIX}${norm(id)}`;
+const normalizeIds = (ids: string[]) => ids.map(norm).sort().join(",");
+
+type CacheRecord = { movie: Movie };
 
 function readCache(id: string): Movie | null {
   try {
-    const raw = localStorage.getItem(key(id));
+    const raw = localStorage.getItem(cacheKey(id));
     if (!raw) return null;
     const data = JSON.parse(raw) as CacheRecord;
-    if (!data?.movie || !data?.ts) return null;
-    if (Date.now() - data.ts > CACHE_TTL_MS) return null;
-    return data.movie;
+    return data?.movie ?? null;
   } catch {
     return null;
   }
@@ -25,70 +27,116 @@ function readCache(id: string): Movie | null {
 
 function writeCache(id: string, movie: Movie) {
   try {
-    const payload: CacheRecord = { movie, ts: Date.now() };
-    localStorage.setItem(key(id), JSON.stringify(payload));
-  } catch {
-    // ignore in dev
+    localStorage.setItem(cacheKey(id), JSON.stringify({ movie } satisfies CacheRecord));
+  } catch {}
+}
+
+function listCachedIds(): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i)!;
+    if (k.startsWith(CACHE_PREFIX) && !k.endsWith("@ids-sig")) {
+      out.push(k.replace(CACHE_PREFIX, ""));
+    }
+  }
+  return out;
+}
+
+function pruneCache(keepIds: Set<string>) {
+  for (const cachedId of listCachedIds()) {
+    if (!keepIds.has(cachedId)) {
+      localStorage.removeItem(`${CACHE_PREFIX}${cachedId}`);
+    }
   }
 }
 
+// ----- hook
 export function useCachedMovies(ids: string[]) {
   const [movies, setMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loadingMovieInfo, setLoadingMovieInfo] = useState<boolean>(true);
 
-  // Keep dependency stable (avoids re-runs if array identity changes)
-  const idSig = useMemo(() => ids.join(","), [ids]);
+  // stable signal for deps
+  const sig = useMemo(() => normalizeIds(ids), [ids]);
 
-  useEffect(() => {
-    let alive = true;
-    const controller = new AbortController();
+useEffect(() => {
+  let alive = true;
+  const controller = new AbortController();
 
-    (async () => {
-      setLoading(true);
-      try {
-        // 1) start with whatever we already have cached
-        const cached: Movie[] = [];
-        const toFetch: string[] = [];
-        for (const id of ids) {
-          const c = readCache(id);
-          if (c) cached.push(c);
-          else toFetch.push(id);
-        }
-        if (alive) setMovies(cached);
+  (async () => {
+    setLoadingMovieInfo(true);
 
-        // 2) fetch remaining in parallel; ignore aborts
-        const fetched = await Promise.all(
-          toFetch.map(async (id) => {
-            try {
-              const m = await getMovieByImdbId(id, controller.signal);
-              writeCache(id, m);
-              return m;
-            } catch (e: any) {
-              if (e?.name === "AbortError") return null; // ignore
-              console.error("Fetch failed for", id, e);
-              return null;
-            }
-          })
-        );
-
-        if (!alive) return;
-        const newOnes = fetched.filter(Boolean) as Movie[];
-        if (newOnes.length) {
-          // Merge: preserve order of ids
-          const byId = new Map<string, Movie>();
-          [...cached, ...newOnes].forEach((m) => byId.set(m.imdbId, m));
-          setMovies(ids.map((id) => byId.get(id)).filter(Boolean) as Movie[]);
-        }
-      } finally {
-        if (alive) setLoading(false);
+    // ✅ 1) Empty list => no work, no signature churn
+    if (!ids || ids.length === 0) {
+      if (alive) {
+        setMovies([]);
+        setLoadingMovieInfo(false);
       }
-    })();
+      return;
+    }
 
-    return () => {
-      alive = false;
-      controller.abort(); // triggers AbortError in in-flight fetches; we ignore above
-    };
-  }, [idSig]); // stable dependency
+    const prevSig = localStorage.getItem(IDS_SIG_KEY);
+    const sameList = prevSig === sig;
 
-  return { movies, loading };
+    // ✅ 2) First run / missing signature, but cache already has this exact set
+    if (!sameList && !prevSig) {
+      const cached = ids.map(id => readCache(id)).filter(Boolean) as Movie[];
+      if (cached.length === ids.length) {
+        if (alive) {
+          setMovies(orderToIds(ids, cached));
+          localStorage.setItem(IDS_SIG_KEY, sig);       // bootstrap signature
+          pruneCache(new Set(ids.map(norm)));           // tidy up
+          setLoadingMovieInfo(false);
+        }
+        return; // skip network
+      }
+      // else: fall through to full refresh
+    }
+
+    // Existing behavior
+    if (sameList) {
+      const cached = ids.map(id => readCache(id)).filter(Boolean) as Movie[];
+      if (cached.length === ids.length) {
+        if (alive) {
+          setMovies(orderToIds(ids, cached));
+          setLoadingMovieInfo(false);
+        }
+        return;
+      }
+      // cache incomplete -> refresh all
+    }
+
+    // List changed OR cache incomplete -> fetch all
+
+
+    const fetched = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          const m = await getMovieByImdbId(id, controller.signal);
+          writeCache(id, m);
+          return m;
+        } catch { return null; }
+      })
+    );
+
+    if (!alive) return;
+
+    const moviesNow = (fetched.filter(Boolean) as Movie[]);
+    setMovies(orderToIds(ids, moviesNow));
+    localStorage.setItem(IDS_SIG_KEY, sig);
+    pruneCache(new Set(ids.map(norm)));
+    setLoadingMovieInfo(false);
+  })();
+
+  return () => { alive = false; controller.abort(); };
+}, [sig, ids]);
+
+
+  return { movies, loadingMovieInfo };
+}
+
+// Preserve the caller's order of ids
+function orderToIds(ids: string[], list: Movie[]): Movie[] {
+  const byId = new Map<string, Movie>();
+  for (const m of list) byId.set(norm(m.imdbId), m);
+  return ids.map(id => byId.get(norm(id))).filter(Boolean) as Movie[];
 }

@@ -51,8 +51,6 @@ export const SearchBox = React.forwardRef<HTMLInputElement, SearchBoxProps>(({xB
         <Button
             tabIndex={-1}
             aria-label="Clear"
-            onMouseDown={(e) => e.preventDefault()}   
-            onTouchStart={(e) => e.preventDefault()}  
             style={{
                 background: "none",
                 border: "none",

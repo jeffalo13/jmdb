@@ -18,6 +18,14 @@
   z-index: 100;
 }
 
+/* force these buttons onto their own line */
+.mp-vrow {
+  display: block;
+  width: fit-content;   /* or 100% if you want full-width */
+  margin-block: 6px;
+}
+
+
 .mp-container {
   position: fixed;
   inset: auto 0 0 0;
@@ -148,10 +156,10 @@
 .mp-chip {
   background: var(--chip-bg);
   color: var(--text);
-  border: 1px solid var(--border);
   border-radius: 4px;
   font-size: 11px;
   padding: 3px 8px;
+  cursor: pointer;
 }
 
 .mp-chip--muted {

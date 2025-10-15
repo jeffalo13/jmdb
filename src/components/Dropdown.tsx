@@ -207,7 +207,7 @@ const DropdownSelectAll: React.FC<{
                 onChange();
             }}
         />
-        <span style={{ fontStyle: "italic" }}>{label}</span>
+        <span style={{fontStyle:"italic"}}>{label}</span>
     </div>
 );
 
@@ -383,24 +383,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
     const allowSearch = isOpen && searchable;
 
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    function openAndFocus() {
-        if (disabled) return;
-        if (!isOpen) setIsOpen(true);
-
-        // Focus during the same gesture; requestAnimationFrame avoids focusing while DOM updates.
-        requestAnimationFrame(() => {
-            const el = inputRef.current;
-            if (!el) return;
-            el.readOnly = false; // belt-and-suspenders: ensure readOnly is off before focus
-            el.focus();
-            // Put caret at end (helps iOS show keyboard reliably)
-            const len = el.value?.length ?? 0;
-            try { el.setSelectionRange(len, len); } catch { }
-        });
-    }
-
     useEffect(() => {
         if (!isOpen) return;
         function handleClick(event: MouseEvent) {
@@ -533,19 +515,17 @@ export const Dropdown: React.FC<DropdownProps> = ({
             }}
         >
             <SearchBox
-                ref={inputRef}
                 label={label}
                 backgroundColor={backgroundColor}
                 borderColor={MenuBorder}
                 xButtonColor={XButtonColor}
                 value={allowSearch ? searchText : displayLabel}
                 onChange={e => {
-                    if (searchable && isOpen) setSearchText(e.target.value);
+                    if (searchable && isOpen) {
+                        setSearchText(e.target.value);
+                    }
                 }}
-                // Use pointer/touch to ensure it counts as a user gesture on mobile
-                onMouseDown={(e) => { e.preventDefault(); openAndFocus(); }}
-                onTouchStart={(e) => { e.preventDefault(); openAndFocus(); }}
-                onClick={(_e) => { /* no-op: we already handled open+focus above */ }}
+                onClick={() => !disabled && setIsOpen(!isOpen)}
                 disabled={disabled}
                 readOnly={!allowSearch}
                 placeholder={PlaceHolder}
@@ -557,11 +537,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                     letterSpacing: "0.04em",
                     minWidth: 0,
                 }}
-                // Optional: friendlier mobile keyboard
-                inputMode="text"
-                enterKeyHint="search"
             />
-
             {isOpen && !disabled && (
                 <DropdownMenu
                     style={{

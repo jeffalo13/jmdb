@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import "./App.css";
 
-import { IMDB_IDS } from "./data/imdbIDs";
+// import { IMDB_IDS } from "./data/imdbIDs";
 import { useCachedMovies } from "./hooks/useCachedMovies";
 import type { Movie, SortKey } from "./types/movie";
 
@@ -10,11 +10,13 @@ import { SearchBox } from "./components/SearchBox";
 import MovieSheet from "./components/Movie/MoviePreview";
 import { SortDropdown } from "./components/SortDropdown";
 import { Button } from "./components/Button";
+import { useMovieIDs } from "./hooks/useMovieIDs";
 
 const App: React.FC = () => {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
+  const [selectedCast, setSelectedCast] = useState<string[]>([]);
   const [term, setTerm] = useState("");
   const [openMovie, setOpenMovie] = useState<Movie | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
@@ -22,7 +24,11 @@ const App: React.FC = () => {
 
   const accentColor = "#f0e68c";
 
-  const { movies, loading } = useCachedMovies(IMDB_IDS as unknown as string[]);
+  const {movieIDs, loadingIDs} = useMovieIDs();
+
+  const { movies, loadingMovieInfo } = useCachedMovies(movieIDs as unknown as string[]);
+
+  const loading = loadingIDs || loadingMovieInfo;
 
   const toOptions = (items: string[]): DropdownOption[] => {
     const toArray = Array.from(new Set(items))
@@ -85,11 +91,12 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
     return movies.filter((m) => {
       const byGenre = selectedGenres.length ? m.genres.some((g) => selectedGenres.includes(g)) : true;
       const byFlavor = selectedFlavors.length ? m.flavors.some((f) => selectedFlavors.includes(f)) : true;
-      const byKeyword = selectedKeywords.length ? m.keywords.some((f) => selectedKeywords.includes(f)) : true;
+      const byKeyword = selectedKeywords.length ? m.keywords.some((k) => selectedKeywords.includes(k)) : true;
+      const byCast = selectedCast.length ? m.actors.some((a) => selectedCast.includes(a)) : true;
       const bySearch = t ? matchesSearchTerm(m, t) : true; // simplify for now
-      return byGenre && byFlavor && bySearch && byKeyword;
+      return byGenre && byFlavor && bySearch && byKeyword && byCast;
     });
-  }, [movies, selectedGenres, selectedFlavors, selectedKeywords, term]);
+  }, [movies, selectedGenres, selectedFlavors, selectedKeywords, selectedCast, term]);
 
   // sort
   const visible = useMemo(() => {
@@ -126,6 +133,8 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
 
   const onGenreClicked = (genre: string) => {
     setSelectedGenres([genre]);
+
+    //resets
     setSelectedFlavors([]);
     setSelectedKeywords([]);
     setTerm("");
@@ -134,6 +143,8 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
   }
   const onFlavorClicked = (flavor: string) => {
     setSelectedFlavors([flavor])
+
+    //resets
     setSelectedGenres([]);
     setSelectedKeywords([]);
     setTerm("");
@@ -141,11 +152,25 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
   }
   const onKeywordClicked = (keyword: string) => {
     setSelectedKeywords([keyword]);
+
+    //resets
     setSelectedFlavors([]);
     setSelectedGenres([]);
     setTerm("");
     scrollToTop();
   }
+  const onCastClicked = (cast: string) => {
+
+    setSelectedCast([cast]);
+
+    //resets
+    setSelectedKeywords([]);
+    setSelectedFlavors([]);
+    setSelectedGenres([]);
+    setTerm("");
+    scrollToTop();
+  }
+
 
 
   const logoClicked = () => {
@@ -162,6 +187,7 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
     setSelectedGenres([]);
     setSelectedFlavors([]);
     setSelectedKeywords([]);
+    setSelectedCast([]);
     setTerm("");
     setSortAsc(true);
     setSortMode("alpha")
@@ -192,6 +218,7 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
 
         <Dropdown
           backgroundColor="#0b0c10"
+          searchable
           // label="Genre"
           darkMode
           options={genreOptions}
@@ -207,6 +234,7 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
 
         <Dropdown
           backgroundColor="#0b0c10"
+          searchable
           // label="Flavor"
           darkMode
           options={flavorOptions}
@@ -221,6 +249,7 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
 
         <Dropdown
           backgroundColor="#0b0c10"
+          searchable
           // label="Keywords"
           fontColor={accentColor}
           darkMode
@@ -291,7 +320,8 @@ const matchesSearchTerm = (movie: Movie, raw: string) => {
       </main>
 
       {/* Mobile sheet with details */}
-      <MovieSheet movie={openMovie} onClose={() => setOpenMovie(null)} onFlavorClicked={onFlavorClicked} onGenreClicked={onGenreClicked} onKeywordClicked={onKeywordClicked} />
+      <MovieSheet movie={openMovie} onClose={() => setOpenMovie(null)} 
+      onFlavorClicked={onFlavorClicked} onGenreClicked={onGenreClicked} onKeywordClicked={onKeywordClicked} onCastClicked={onCastClicked} />
     </div>
   );
 };
