@@ -167,7 +167,9 @@ export const InputBox = forwardRef<HTMLInputElement, InputBoxProps>(({
                     maxWidth: "100%",
                     transition: "border-color 0.18s, box-shadow 0.18s",
                     boxSizing: "border-box",
-                    userSelect: "none",
+                    userSelect: "text",
+                    WebkitUserSelect: "text",
+                    touchAction: "manipulation",
                     cursor: props.readOnly ? "pointer" : (props.disabled ? "not-allowed" : "text"),
                     paddingRight: (rightIconProp ? rightIconWidth + 20 : undefined)
                 }}
