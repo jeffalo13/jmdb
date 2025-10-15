@@ -322,7 +322,7 @@ export const KEYWORD_TO_FLAVORS: Record<string, Flavor[]> = {
   "spycraft": ["Espionage Spy Thriller","Conspiracy Thriller"],
   "cia agent": ["Espionage Spy Thriller"],
   "interpol": ["Espionage Spy Thriller","Police Procedural"],
-  "torture": ["Crime Epic Gangster","Macabre Disturbing"],
+  "torture": ["Macabre Disturbing"],
   "casino": ["Heist","Urban Crime"],
   "terrorism": ["Action Thriller","Conspiracy Thriller"],
   "bounty hunter": ["Action Thriller","Vigilante Justice"],
