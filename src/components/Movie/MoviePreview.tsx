@@ -5,14 +5,19 @@ import "./MoviePreview.css";
 interface Props {
   movie: Movie | null;
   onClose: () => void;
+  onGenreClicked: (genre: string) => void;
+  onFlavorClicked: (flavor: string) => void;
+  onKeywordClicked: (keyword: string) => void;
 }
 
 const SWIPE_PX = 30;
 
-const MoviePreview: React.FC<Props> = ({ movie, onClose }) => {
+const MoviePreview: React.FC<Props> = ({ movie, onClose, onGenreClicked, onFlavorClicked, onKeywordClicked }) => {
   const [idx, setIdx] = useState(0);
   const startX = useRef<number | null>(null);
   const swiping = useRef(false);
+  const [showKeywords, setShowKeywords] = useState(false);
+  const [exiting, setExiting] = useState(false);
 
   // primary first, then unique alt posters
   const posters = useMemo(() => {
@@ -33,6 +38,10 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose }) => {
   }, [movie]);
 
   useEffect(() => setIdx(0), [movie]);
+
+  useEffect(() => {
+    if (movie) setExiting(false);
+  }, [movie]);
 
   const count = posters.length || 1;
   const goTo = (n: number) => {
@@ -66,18 +75,42 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose }) => {
 
   if (!movie) return null;
 
+  const handleClose = () => {
+    setExiting(true);
+    setTimeout(onClose, 400); // matches animation duration
+  };
+
+  const handleTagClicked = (tagType: string, tag: string) => {
+
+    switch (tagType) {
+      case "genre":
+        onGenreClicked(tag)
+        break;
+      case "flavor":
+        onFlavorClicked(tag)
+        break;
+      case "keyword":
+        onKeywordClicked(tag)
+        break;
+    }
+
+    handleClose();
+
+  }
+
+
 
   return (
     <>
       <div className="mp-backdrop" onClick={onClose} />
-      <section className="mp-container" role="dialog" aria-modal="true" aria-label={`${movie.title} details`} 
-                style={{['--mp-bg' as any]: `url(${movie.backdropUrl || movie.posterUrl})`}}>
+      <section className={`mp-container ${exiting ? "is-exiting" : ""}`} role="dialog" aria-modal="true" aria-label={`${movie.title} details`}
+        style={{ ['--mp-bg' as any]: `url(${movie.backdropUrl || movie.posterUrl})` }}>
         <header className="mp-header">
           <h2 className="mp-title">
             {movie.title}{" "}
             {Number.isFinite(movie.year) && <span className="mp-year">({movie.year})</span>}
           </h2>
-          <button className="mp-close" onClick={onClose} aria-label="Close">✕</button>
+          <button className="mp-close" onClick={handleClose} aria-label="Close">✕</button>
         </header>
 
         {/* Poster carousel */}
@@ -124,14 +157,28 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose }) => {
           {movie.genres.length > 0 && (
             <div className="mp-row">
               {movie.genres.map((g) => (
-                <span key={g} className="mp-chip">{g}</span>
+                <span key={g} className="mp-chip" onClick={() => handleTagClicked("genre", g)}>{g}</span>
               ))}
             </div>
           )}
-          {movie.keywords?.length > 0 && (
+          {movie.flavors?.length > 0 && (
             <div className="mp-row">
-              {movie.keywords.slice(0, 10).map((k) => (
-                <span key={k} className="mp-chip mp-chip--muted">{k}</span>
+              {movie.flavors.map((f) => (
+                <span key={f} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("flavor", f)}>{f}</span>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            className={`mp-chip mp-chip-btn`}
+            aria-pressed={showKeywords}
+            onClick={() => setShowKeywords(!showKeywords)}
+          >{`${showKeywords ? "Hide" : "Show"} Keywords`}</button>
+          {showKeywords && (
+
+            <div className="mp-row">
+              {movie.keywords.map((k) => (
+                <span key={k} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("keyword", k)}>{k}</span>
               ))}
             </div>
           )}

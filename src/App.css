@@ -9,13 +9,18 @@
 
 html, body, #root { height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--text);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+  font-family: 'Figtree', sans-serif; }
 
 .ml-app { min-height: 100%; display: flex; flex-direction: column; }
 
+.ml-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 30;              /* one stacking context for both */
+}
+
 /* Top header with title */
 .ml-header {
-  position: sticky; top: 0; z-index: 30;
   background: linear-gradient(180deg, rgba(10,10,14,.95), rgba(10,10,14,.7));
   border-bottom: 1px solid var(--border);
   padding: 10px 14px;
@@ -41,12 +46,13 @@ body { margin: 0; background: var(--bg); color: var(--text);
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(2, minmax(0, 1fr));  /* 2-up on phones */
+  /* min-width: calc("100vw - 14px"); */
 }
 @media (min-width: 480px) {
-  .ml-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ml-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (min-width: 768px) {
-  .ml-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .ml-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 /* Cards */
@@ -57,7 +63,7 @@ body { margin: 0; background: var(--bg); color: var(--text);
 .ml-card__placeholder { color: var(--muted); font-size: 12px; padding: 8px; text-align: center; }
 .ml-card__title { padding: 8px 10px 10px; font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.ml-loading { padding: 12px 14px; color: var(--muted); }
+.ml-loading { padding: 12px 14px; color: var(--muted); width: 100vw; }
 
 /* Sort buttons (now inline under controls) */
 .ml-sortRow { display: flex; gap: 8px; }
@@ -66,3 +72,15 @@ body { margin: 0; background: var(--bg); color: var(--text);
   border-radius: 10px; padding: 8px 10px; cursor: pointer; min-width: 70px;
 }
 .ml-sortBtn.is-active { border-color: var(--accent); color: var(--text); }
+
+/* App.css */
+.ml-logo {
+  display: block;
+  height: 40px;       /* tweak as you like */
+  width: auto;
+  object-fit: contain;
+}
+
+@media (min-width: 480px) {
+  .ml-logo { height: 34px; }
+}

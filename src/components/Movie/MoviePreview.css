@@ -5,11 +5,11 @@
   --muted: #9a9aaa;
   --border: #262738;
   --accent: #8aa4ff;
-  --chip-bg: #242636;
-  --chip-muted-bg: #1e202d;
+  --chip-bg: #242636;        /* chip (primary) */
+  --chip-muted-bg: #1e202d;  /* chip (muted/secondary) */
 }
 
-/* ==== Overlay + Container ==== */
+/* Overlay + Container */
 .mp-backdrop {
   position: fixed;
   inset: 0;
@@ -22,31 +22,29 @@
   position: fixed;
   inset: auto 0 0 0;
   z-index: 101;
-  /* Fallback color if no image is set */
   background-color: var(--bg-elev);
-
-  /* Overlay + image (image comes from CSS var below) */
   background-image:
     linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,.35)),
     var(--mp-bg, none);
-  background-size: cover;         /* make it fill */
-  background-position: center;    /* center the subject */
+  background-size: cover;
+  background-position: center;
   background-repeat: no-repeat;
-
   border-top: 1px solid var(--border);
   border-radius: 16px 16px 0 0;
   max-height: 92vh;
   overflow-y: auto;
   color: var(--text);
-  animation: mp-slide-up 180ms ease-out forwards;
+  animation: mp-slide-up 400ms ease-out forwards;
 }
 
-@keyframes mp-slide-up {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+.mp-container.is-exiting {
+  animation: mp-slide-down 400ms ease-in forwards;
 }
 
-/* ==== Header ==== */
+@keyframes mp-slide-up   { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes mp-slide-down { from { transform: translateY(0);   } to { transform: translateY(100%); } }
+
+/* Header */
 .mp-header {
   display: flex;
   align-items: center;
@@ -62,7 +60,7 @@
 }
 
 .mp-year {
-  color: var(--muted);
+  color: var(--text);
   font-weight: 400;
   margin-left: 4px;
 }
@@ -70,31 +68,28 @@
 .mp-close {
   border: none;
   background: transparent;
-  color: var(--muted);
+  color: var(--text);
   font-size: 20px;
   cursor: pointer;
   line-height: 1;
-  transition: color 0.15s ease;
+  transition: opacity 0.15s ease;
 }
+.mp-close:hover { opacity: 0.9; }
 
-.mp-close:hover {
-  color: var(--text);
-}
-
-/* ==== Poster Carousel ==== */
+/* Poster Carousel */
 .mp-posterWrap {
   margin: 12px auto 0;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #0a0b10;
-  border: 1px solid var(--border);
-  aspect-ratio: 2 / 3;
   width: 85%;
+  aspect-ratio: 2 / 3;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #0a0b10;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   touch-action: pan-y;
+  overflow: hidden;
 }
 
 .mp-poster {
@@ -104,10 +99,7 @@
   animation: mp-fade-in 200ms ease-in;
 }
 
-@keyframes mp-fade-in {
-  from { opacity: 0.3; }
-  to { opacity: 1; }
-}
+@keyframes mp-fade-in { from { opacity: 0.3; } to { opacity: 1; } }
 
 .mp-posterPlaceholder {
   display: grid;
@@ -121,9 +113,9 @@
 /* Story-style segment indicators */
 .mp-segments {
   position: absolute;
-  bottom: 8px;
   left: 10px;
   right: 10px;
+  bottom: 8px;
   display: grid;
   grid-auto-flow: column;
   gap: 4px;
@@ -135,18 +127,15 @@
   height: 3px;
   background: rgba(255, 255, 255, 0.25);
   border-radius: 999px;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease;
 }
-
 .mp-segment.is-active {
   background: rgba(255, 255, 255, 0.9);
   transform: translateY(-0.5px);
 }
 
-/* ==== Meta Info ==== */
-.mp-meta {
-  padding: 12px 16px 0;
-}
+/* Meta */
+.mp-meta { padding: 12px 16px 0; }
 
 .mp-row {
   display: flex;
@@ -155,13 +144,14 @@
   margin-bottom: 8px;
 }
 
+/* Chips */
 .mp-chip {
   background: var(--chip-bg);
-  border-radius: 999px;
-  font-size: 11px;
-  padding: 3px 8px;
   color: var(--text);
   border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  padding: 3px 8px;
 }
 
 .mp-chip--muted {
@@ -169,7 +159,24 @@
   color: var(--muted);
 }
 
-/* ==== Plot & Cast ==== */
+/* Chip as a button/toggle */
+.mp-chip-btn {
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 0.5em;
+  transition: transform 80ms ease, filter 80ms ease, box-shadow 80ms ease;
+}
+.mp-chip-btn:active {
+  transform: scale(0.98);
+  filter: brightness(0.95);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.15);
+}
+.mp-chip-btn:focus-visible {
+  outline: 2px solid var(--border);
+  outline-offset: 2px;
+}
+
+/* Body text */
 .mp-plot {
   padding: 0 16px;
   margin-top: 4px;
@@ -185,19 +192,17 @@
   font-size: 13px;
   line-height: 1.4;
 }
-
 .mp-cast strong {
   color: var(--text);
   font-weight: 600;
 }
 
-/* ==== Scrollbar ==== */
-.mp-container::-webkit-scrollbar {
-  width: 6px;
-}
+/* Scrollbar */
+.mp-container::-webkit-scrollbar { width: 6px; }
 .mp-container::-webkit-scrollbar-thumb {
   background: #2a2a35;
   border-radius: 10px;
 }
 
+/* Spacer */
 .mp-spacer { height: clamp(40vh, 60vh, 800px); }

@@ -1,4 +1,4 @@
-export type SortKey = "alpha" | "yearAsc" | "yearDesc";
+export type SortKey = "alpha" | "year";
 
 export interface Movie {
   id: string;       // local id (use imdbId)

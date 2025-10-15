@@ -8,14 +8,19 @@ import type { Movie, SortKey } from "./types/movie";
 import { Dropdown, type DropdownOption } from "./components/Dropdown";
 import { SearchBox } from "./components/SearchBox";
 import MovieSheet from "./components/Movie/MoviePreview";
+import { SortDropdown } from "./components/SortDropdown";
+import { Button } from "./components/Button";
 
 const App: React.FC = () => {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
   const [term, setTerm] = useState("");
-  const [sort, setSort] = useState<SortKey>("alpha");
-  const [openMovie, setOpenMovie] = useState<Movie | null>(null); // NEW
+  const [openMovie, setOpenMovie] = useState<Movie | null>(null);
+  const [sortAsc, setSortAsc] = useState(true);
+  const [sortMode, setSortMode] = useState<SortKey>("alpha");
+
+  const accentColor = "#f0e68c";
 
   const { movies, loading } = useCachedMovies(IMDB_IDS as unknown as string[]);
 
@@ -26,33 +31,42 @@ const App: React.FC = () => {
     return toArray;
   }
 
+  const searchTitle = (movieTitle: string, searchTerm: string) => {
+    const t = searchTerm.trim().toLowerCase();
+    return movieTitle.toLowerCase().includes(t);
+  }
+
 
   const genreOptions: DropdownOption[] = useMemo(() => {
     const pool = movies.filter((m) =>
       (selectedFlavors.length ? m.flavors.some((f) => selectedFlavors.includes(f)) : true) &&
-      (selectedKeywords.length ? m.keywords.some((k) => selectedKeywords.includes(k)) : true)
+      (selectedKeywords.length ? m.keywords.some((k) => selectedKeywords.includes(k)) : true) &&
+      (!term || searchTitle(m.title, term))
     );
     const genres = pool.flatMap((m) => m.genres);
     return toOptions(genres);
-  }, [movies, selectedFlavors, selectedKeywords]);
+  }, [movies, selectedFlavors, selectedKeywords, term]);
 
   const flavorOptions: DropdownOption[] = useMemo(() => {
     const pool = movies.filter((m) =>
       (selectedGenres.length ? m.genres.some((g) => selectedGenres.includes(g)) : true) &&
-      (selectedKeywords.length ? m.keywords.some((k) => selectedKeywords.includes(k)) : true)
+      (selectedKeywords.length ? m.keywords.some((k) => selectedKeywords.includes(k)) : true) &&
+      (!term || searchTitle(m.title, term))
     );
     const flavors = pool.flatMap((m) => m.flavors);
     return toOptions(flavors);
-  }, [movies, selectedGenres, selectedKeywords]);
+  }, [movies, selectedGenres, selectedKeywords, term]);
 
   const keywordOptions: DropdownOption[] = useMemo(() => {
     const pool = movies.filter((m) =>
       (selectedGenres.length ? m.genres.some((g) => selectedGenres.includes(g)) : true) &&
-      (selectedFlavors.length ? m.flavors.some((f) => selectedFlavors.includes(f)) : true)
+      (selectedFlavors.length ? m.flavors.some((f) => selectedFlavors.includes(f)) : true) &&
+      (!term || searchTitle(m.title, term))
     );
     const keywords = pool.flatMap((m) => m.keywords);
     return toOptions(keywords);
-  }, [movies, selectedGenres, selectedFlavors]);
+  }, [movies, selectedGenres, selectedFlavors, term]);
+
 
 
   // filter/search
@@ -62,7 +76,7 @@ const App: React.FC = () => {
       const byGenre = selectedGenres.length ? m.genres.some((g) => selectedGenres.includes(g)) : true;
       const byFlavor = selectedFlavors.length ? m.flavors.some((f) => selectedFlavors.includes(f)) : true;
       const byKeyword = selectedKeywords.length ? m.keywords.some((f) => selectedKeywords.includes(f)) : true;
-      const bySearch = t ? m.title.toLowerCase().includes(t) : true; // simplify for now
+      const bySearch = t ? searchTitle(m.title, t) : true; // simplify for now
       return byGenre && byFlavor && bySearch && byKeyword;
     });
   }, [movies, selectedGenres, selectedFlavors, selectedKeywords, term]);
@@ -70,34 +84,96 @@ const App: React.FC = () => {
   // sort
   const visible = useMemo(() => {
     const copy = [...filtered];
-    switch (sort) {
-      case "alpha":
+
+    const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
+    const strip = (s = "") => s.replace(/^(?:the|a|an)\s+/i, "").trim();
+    const dir = sortAsc ? 1 : -1;
+    const rankYear = (y?: number | null) => (y == null ? Infinity : y); // unknown years last
+
+    switch (sortMode) {
+      case "alpha": {
+        copy.sort((a, b) => dir * collator.compare(strip(a.title), strip(b.title)));
+        break;
+      }
+      case "year": {
         copy.sort((a, b) => {
-          const clean = (s: string) => s.replace(/^(the |a )/i, "").trim();
-          return clean(a.title).localeCompare(clean(b.title));
+          const primary = rankYear(a.year) - rankYear(b.year);
+          if (primary !== 0) return dir * primary;
+          // tie-break by title (always ascending for stability)
+          return collator.compare(strip(a.title), strip(b.title));
         });
         break;
-      case "yearAsc":
-        copy.sort((a, b) => (a.year || 0) - (b.year || 0) || a.title.localeCompare(b.title));
-        break;
-      case "yearDesc":
-        copy.sort((a, b) => (b.year || 0) - (a.year || 0) || a.title.localeCompare(b.title));
+      }
+      // case "runtime":
+      // case "rating":
+      //   // add future modes here
+      default:
         break;
     }
+
     return copy;
-  }, [filtered, sort]);
+  }, [filtered, sortMode, sortAsc]);
+
+  const onGenreClicked = (genre: string) => {
+    setSelectedGenres([genre]);
+    setSelectedFlavors([]);
+    setSelectedKeywords([]);
+    setTerm("");
+    scrollToTop();
+    
+  }
+  const onFlavorClicked = (flavor: string) => {
+    setSelectedFlavors([flavor])
+    setSelectedGenres([]);
+    setSelectedKeywords([]);
+    setTerm("");
+    scrollToTop();
+  }
+  const onKeywordClicked = (keyword: string) => {
+    setSelectedKeywords([keyword]);
+    setSelectedFlavors([]);
+    setSelectedGenres([]);
+    setTerm("");
+    scrollToTop();
+  }
+
+
+  const logoClicked = () => {
+    clearFilters();
+    scrollToTop();
+    
+  }
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  const clearFilters = () => {
+    setSelectedGenres([]);
+    setSelectedFlavors([]);
+    setSelectedKeywords([]);
+    setTerm("");
+    setSortAsc(true);
+    setSortMode("alpha")
+    setOpenMovie(null);
+  }
+
+
 
   return (
     <div className="ml-app">
       {/* Sticky title header */}
-      <div className="ml-header">
-        <h1 className="ml-title">Jeff&apos;s Movies</h1>
-      </div>
+      <div className="ml-sticky">
+        <div className="ml-header">
+          <img src="/logo.png" alt="Jeff's Movies" className="ml-logo" height={40} onClick={logoClicked} />
+        </div>
 
-      {/* Mobile-first vertical controls */}
-      <section className="ml-controlsStack">
+ 
+      </div>
+                   <section className="ml-controlsStack">
         <SearchBox
-          backgroundColor="#161722"
+          backgroundColor="#0b0c10"
+          accentColor={accentColor}
           darkMode
           value={term}
           onChange={(e) => setTerm(e.target.value)}
@@ -105,10 +181,11 @@ const App: React.FC = () => {
         />
 
         <Dropdown
-          backgroundColor="#161722"
-          label="Genre"
+          backgroundColor="#0b0c10"
+          // label="Genre"
           darkMode
           options={genreOptions}
+          accentColor={accentColor}
           selectedKeys={selectedGenres}
           onChange={(v) => setSelectedGenres(Array.isArray(v) ? v.map(String) : [String(v)])}
           multiSelect
@@ -119,39 +196,75 @@ const App: React.FC = () => {
         />
 
         <Dropdown
-          backgroundColor="#161722"
-          label="Flavor"
+          backgroundColor="#0b0c10"
+          // label="Flavor"
           darkMode
           options={flavorOptions}
+          accentColor={accentColor}
           selectedKeys={selectedFlavors}
           onChange={(v) => setSelectedFlavors(Array.isArray(v) ? v.map(String) : [String(v)])}
           multiSelect
+          showSelectAll={true}
           searchable placeholder="Filter Flavor..."
           style={{ width: "auto" }}
         />
 
         <Dropdown
-          backgroundColor="#161722"
-          label="Keywords"
+          backgroundColor="#0b0c10"
+          // label="Keywords"
+          fontColor={accentColor}
           darkMode
           options={keywordOptions}
+          accentColor={accentColor}
           selectedKeys={selectedKeywords}
           onChange={(v) => setSelectedKeywords(Array.isArray(v) ? v.map(String) : [String(v)])}
           multiSelect
+          showSelectAll={true}
           searchable placeholder="Filter Keyword..."
           style={{ width: "auto" }}
         />
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",      // centers items on the cross-axis
+            gap: 8,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <Button
+              label="Reset Filters"
+              accentColor="#242636"
+              borderColor="transparent"
+              style={{ borderRadius: 4, fontSize: "11px", height:"23px", lineHeight: 1}} // line-height helps text centering
+              onClick={clearFilters}
+            />
+          </div>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <Button
+              label="Back to Top"
+              accentColor="#242636"
+              borderColor="transparent"
+              style={{ borderRadius: 4, fontSize: "11px", height:"23px", lineHeight: 1}} // line-height helps text centering
+              onClick={scrollToTop}
+            />
+          </div>
 
-        <div className="ml-sortRow">
-          <button className={`ml-sortBtn ${sort === "alpha" ? "is-active" : ""}`} onClick={() => setSort("alpha")}>A–Z</button>
-          <button className={`ml-sortBtn ${sort === "yearAsc" ? "is-active" : ""}`} onClick={() => setSort("yearAsc")}>Year ↑</button>
-          <button className={`ml-sortBtn ${sort === "yearDesc" ? "is-active" : ""}`} onClick={() => setSort("yearDesc")}>Year ↓</button>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <SortDropdown
+              sortMode={sortMode}
+              sortAsc={sortAsc}
+              onChange={(mode, asc) => { setSortMode(mode); setSortAsc(asc); }}
+            />
+          </div>
         </div>
-      </section>
 
+
+
+        </section>
       {/* Poster grid */}
       <main className="ml-grid">
-        {loading && <div className="ml-loading">Loading…</div>}
+        {loading && <div className="ml-loading">Loading 4k Blu-ray Collection...</div>}
         {!loading &&
           visible.map((m) => (
             <article key={m.imdbId} className="ml-card" onClick={() => setOpenMovie(m)}>
@@ -162,13 +275,13 @@ const App: React.FC = () => {
                   <div className="ml-card__placeholder">{m.title}</div>
                 )}
               </div>
-              <div className="ml-card__title">{m.title}</div>
+              <div className="ml-card__title">{`${m.title}`}</div>
             </article>
           ))}
       </main>
 
       {/* Mobile sheet with details */}
-      <MovieSheet movie={openMovie} onClose={() => setOpenMovie(null)} />
+      <MovieSheet movie={openMovie} onClose={() => setOpenMovie(null)} onFlavorClicked={onFlavorClicked} onGenreClicked={onGenreClicked} onKeywordClicked={onKeywordClicked} />
     </div>
   );
 };

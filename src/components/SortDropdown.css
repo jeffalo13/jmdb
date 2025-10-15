@@ -1,0 +1,105 @@
+/* Dropdown wrapper as anchor */
+.ml-dd { position: relative; display: inline-block; vertical-align: middle; }
+
+/* Fixed-width trigger so label changes don't resize it */
+.ml-dd-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 80ms ease, filter 120ms ease, box-shadow 120ms ease;
+
+  /* set a constant width that fits your longest label + icon + arrow */
+  --dd-trigger-w: 80px;   /* tweak to taste */
+  width: var(--dd-trigger-w);
+  justify-content: space-between;
+}
+.ml-dd-text {
+  flex: 1 1 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.ml-dd-icon { flex: 0 0 auto; font-size: 12px; line-height: 1; }
+.ml-dd-arrow { flex: 0 0 auto; }
+
+/* Press/Focus */
+.ml-dd-trigger:active { transform: scale(0.98); filter: brightness(0.95); }
+.ml-dd-trigger:focus-visible { outline: 2px solid var(--border, #262738); outline-offset: 2px; }
+
+/* Menu panel */
+.ml-dd-menu {
+  position: absolute;
+  z-index: 40;
+  padding: 6px;
+  background: var(--chip-bg, #242636);
+  border: 1px solid var(--border, #262738);
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  min-width: max(80px, 100%);   /* match trigger or wider */
+  max-width: min(80px, 90vw);   /* clamp to viewport */
+
+  /* default placement: below, start-aligned */
+  top: calc(100% + 6px);
+  left: 0;
+
+  display: grid;
+  gap: 6px;
+
+  /* animate open/close via wrapper class */
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+  transform-origin: top left;
+  pointer-events: none;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+.ml-dd.is-open .ml-dd-menu {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+/* Flip horizontally if needed (align to end of trigger) */
+.ml-dd--end .ml-dd-menu {
+  left: auto;
+  right: 0;
+  transform-origin: top right;
+}
+
+/* Open upwards if needed */
+.ml-dd--up .ml-dd-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
+  transform-origin: bottom left;
+}
+.ml-dd--up.ml-dd--end .ml-dd-menu {
+  transform-origin: bottom right;
+}
+
+/* Menu items (stacked chips) */
+.ml-dd-item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+
+  background: var(--chip-bg, #242636);
+  color: var(--text, #e6e6e6);
+  font-size: 11px;
+  padding: 6px 8px;
+
+  cursor: pointer;
+  user-select: none;
+  transition: transform 80ms ease, filter 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+.ml-dd-item:hover { filter: brightness(1.05); }
+.ml-dd-item:active { transform: scale(0.98); filter: brightness(0.95); }
+.ml-dd-itemArrow { opacity: .9; }
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  .ml-dd-menu, .ml-dd-item, .ml-dd-trigger { transition: none; }
+}
