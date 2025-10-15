@@ -11,6 +11,12 @@ html, body, #root { height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--text);
   font-family: 'Figtree', sans-serif; }
 
+  html {
+  scrollbar-gutter: stable both-edges;   /* modern fix */
+  /* fallback if needed: */
+  overflow-y: scroll;                    /* always show vertical scrollbar */
+}
+
 .ml-app { min-height: 100%; display: flex; flex-direction: column; }
 
 .ml-sticky {
@@ -31,6 +37,10 @@ body { margin: 0; background: var(--bg); color: var(--text);
   font-weight: 700;
 }
 
+.ml-shell {
+  width: 100%;
+}
+
 /* Controls area: MOBILE FIRST = vertical stack */
 .ml-controlsStack {
   display: grid;
@@ -46,7 +56,7 @@ body { margin: 0; background: var(--bg); color: var(--text);
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(2, minmax(0, 1fr));  /* 2-up on phones */
-  /* min-width: calc("100vw - 14px"); */
+  
 }
 @media (min-width: 480px) {
   .ml-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

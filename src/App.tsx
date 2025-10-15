@@ -192,7 +192,8 @@ const App: React.FC = () => {
 
 
       </div>
-      <section className="ml-controlsStack">
+      <div className="ml-shell">
+<section className="ml-controlsStack">
         <SearchBox
           backgroundColor="#0b0c10"
           accentColor={accentColor}
@@ -294,6 +295,7 @@ const App: React.FC = () => {
       {/* Poster grid */}
       <main className="ml-grid">
         {loading && <div className="ml-loading">Loading 4k Blu-ray Collection...</div>}
+        {visible.length === 0 && <div className="ml-loading"></div>}
         {!loading &&
           visible.map((m) => (
             <article key={m.imdbId} className="ml-card" onClick={() => setOpenMovie(m)}>
@@ -312,6 +314,8 @@ const App: React.FC = () => {
       {/* Mobile sheet with details */}
       <MovieSheet movie={openMovie} onClose={() => setOpenMovie(null)}
         onTagClicked={onTagClicked} />
+      </div>
+      
     </div>
   );
 };
