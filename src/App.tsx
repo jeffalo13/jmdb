@@ -215,8 +215,6 @@ const App: React.FC = () => {
     if (anyDropdownOpen) (document.activeElement as HTMLElement | null)?.blur?.();
   }, [anyDropdownOpen]);
 
-  console.log('v4len', import.meta.env.VITE_TMDB_ACCESS_KEY?.length);
-
   return (
     <div className="ml-app">
       {/* Sticky title header */}
