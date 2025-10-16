@@ -89,6 +89,7 @@ body { margin: 0; background: var(--bg); color: var(--text);
   height: 40px;       /* tweak as you like */
   width: auto;
   object-fit: contain;
+  cursor: pointer;
 }
 
 @media (min-width: 480px) {
