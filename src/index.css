@@ -54,6 +54,9 @@ button {
   cursor: pointer;
   /* transition: border-color 0.1s; */
 }
+button:active {
+  border-color: var(--yellow);
+}
 button:hover {
   border-color: var(--yellow);
   color: var(--yellow);

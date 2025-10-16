@@ -1,8 +1,7 @@
 export type SortKey = "alpha" | "year" | "runtime";
 
 export interface Movie {
-  id: string;       // local id (use imdbId)
-  imdbId: string;
+  tmdbID: number;     
   title: string;
   year: number;
   genres: string[];

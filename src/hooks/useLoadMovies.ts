@@ -1,86 +1,60 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Movie } from "../types/movie";
-import { getMovieByImdbId } from "../utils/api/getMovieByImdbID";
+// NOTE: your import path says getMovieByImdbID; make sure the fn name & path match:
+import { getMovieByTmdbId } from "../utils/api/getMovieByImdbID"; // <-- verify this!
 
 // ----- config
-const CACHE_PREFIX = "mlib:v30:";               // bump when cache shape changes
-const IDS_SIG_KEY = `${CACHE_PREFIX}@ids-sig`;  // normalized list signature
+const REQ_TIMEOUT_MS = 12_000; // safeguard against hung requests
 
 // ----- helpers
-const norm = (s: string) => s.trim().toLowerCase();
-const cacheKey = (id: string) => `${CACHE_PREFIX}${norm(id)}`;
-const normalizeIds = (ids: string[]) => ids.map(norm).sort().join(",");
+function isValidMovie(m: any, expectedId?: string | number): m is Movie {
+  // if (!m || typeof m !== "object") return false;
+  // if (!m.tmdbID || typeof m.tmdbID !== "number") return false;
+  // if (expectedId && m.tmdbID !== expectedId) return false;
+  // if (!m.title || typeof m.title !== "string") return false;
+  // return true;\  const isObject = !!m && typeof m === "object";
+  const isObject = !!m && typeof m === "object";
+  const tmdbID = isObject ? (m as any).tmdbID : undefined;
+  const hasTmdbId = typeof tmdbID === "number";
+  const expectedIDParsed = typeof expectedId === "string" ? parseInt(expectedId) : expectedId
+  const matchesExpectedId = expectedIDParsed === undefined ? true : tmdbID === expectedIDParsed;
+  const title = isObject ? (m as any).title : undefined;
+  const hasTitle = typeof title === "string";
 
-// NEW: stronger cache record with ok + timestamp
-type CacheRecord = { ok: true; ts: number; movie: Movie };
-
-// NEW: minimal runtime validation for a Movie
-function isValidMovie(m: any, expectedId?: string): m is Movie {
-  if (!m || typeof m !== "object") return false;
-  // ensure core identity exists
-  if (!m.imdbId || typeof m.imdbId !== "string") return false;
-  if (expectedId && norm(m.imdbId) !== norm(expectedId)) return false;
-  // pick a couple of fields that should always exist in your shape
-  // (adjust these to match your real Movie type guarantees)
-  if (!m.title || typeof m.title !== "string") return false;
-  return true;
+  return isObject && hasTmdbId && matchesExpectedId && hasTitle;
 }
 
-function readCache(id: string): Movie | null {
+// per-request timeout wrapper
+async function withTimeout<T>(p: Promise<T>, ms: number, aborter: AbortController): Promise<T> {
+  let timer: number | undefined;
   try {
-    const raw = localStorage.getItem(cacheKey(id));
-    if (!raw) return null;
-
-    const data = JSON.parse(raw) as Partial<CacheRecord>;
-
-    // validate shape + TTL + movie content
-    if (!data || data.ok !== true || typeof data.ts !== "number") return null;
-    if (!isValidMovie((data as CacheRecord).movie, id)) return null;
-
-    return (data as CacheRecord).movie;
-  } catch {
-    return null;
+    return await Promise.race([
+      p,
+      new Promise<T>((_, reject) => {
+        timer = window.setTimeout(() => {
+          aborter.abort();
+          reject(new Error("Request timeout"));
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) window.clearTimeout(timer);
   }
 }
 
-// CHANGED: only write if valid; else clear any bad cache
-function writeCache(id: string, movie: Movie) {
-  try {
-    if (!isValidMovie(movie, id)) {
-      localStorage.removeItem(cacheKey(id));
-      return;
-    }
-    const rec: CacheRecord = { ok: true, ts: Date.now(), movie };
-    localStorage.setItem(cacheKey(id), JSON.stringify(rec));
-  } catch {}
+// preserve caller-provided order
+function orderToIds(ids: number[], list: Movie[]): Movie[] {
+  const byId = new Map<number, Movie>();
+  for (const m of list) byId.set(m.tmdbID, m);
+  return ids.map(id => byId.get(id)).filter(Boolean) as Movie[];
 }
 
-function listCachedIds(): string[] {
-  const out: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i)!;
-    if (k.startsWith(CACHE_PREFIX) && !k.endsWith("@ids-sig")) {
-      out.push(k.replace(CACHE_PREFIX, ""));
-    }
-  }
-  return out;
-}
-
-function pruneCache(keepIds: Set<string>) {
-  for (const cachedId of listCachedIds()) {
-    if (!keepIds.has(cachedId)) {
-      localStorage.removeItem(`${CACHE_PREFIX}${cachedId}`);
-    }
-  }
-}
-
-// ----- hook
-export function useLoadMovies(ids: string[]) {
+export function useLoadMovies(ids: number[]) {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loadingMovieInfo, setLoadingMovieInfo] = useState<boolean>(true);
 
-  // stable signal for deps
-  const sig = useMemo(() => normalizeIds(ids), [ids]);
+  // changing the list should trigger a fresh fetch
+  const sig = useMemo(() => ids.slice().sort((a,b)=>a-b).join(","), [ids]);
 
   useEffect(() => {
     let alive = true;
@@ -89,7 +63,6 @@ export function useLoadMovies(ids: string[]) {
     (async () => {
       setLoadingMovieInfo(true);
 
-      // 1) Empty list => no work
       if (!ids || ids.length === 0) {
         if (alive) {
           setMovies([]);
@@ -98,86 +71,41 @@ export function useLoadMovies(ids: string[]) {
         return;
       }
 
-      const prevSig = localStorage.getItem(IDS_SIG_KEY) ?? "";
-      const sameList = prevSig === sig;
-
-      // Try cache first (only valid entries count)
-      const cachedValid = ids
-        .map(id => readCache(id))
-        .filter((m): m is Movie => !!m);
-
-      if (sameList && cachedValid.length === ids.length) {
-        if (alive) {
-          setMovies(orderToIds(ids, cachedValid));
-          setLoadingMovieInfo(false);
-        }
-        return;
-      }
-
-      // Fetch only missing/invalid ones (don’t nuke good cache)
-      const needIds = ids.filter((id) => !readCache(id));
-
-      // If we have some valid cache, use it immediately for a fast paint
-      if (cachedValid.length > 0 && alive) {
-        setMovies(orderToIds(ids, cachedValid));
-      }
-
-      // Fetch the gaps
+      // Fetch ALL ids every time (no cache)
       const fetchedPairs = await Promise.all(
-        needIds.map(async (id) => {
+        ids.map(async (id: number) => {
+          const perIdAbort = new AbortController();
+          controller.signal.addEventListener("abort", () => perIdAbort.abort(), { once: true });
+
           try {
-            const m = await getMovieByImdbId(id, controller.signal);
-            console.log('made api call')
+            const m = await withTimeout(
+              getMovieByTmdbId(id, perIdAbort.signal),
+              REQ_TIMEOUT_MS,
+              perIdAbort
+            );
+            console.log("made api call")
             if (isValidMovie(m, id)) {
-              writeCache(id, m);
               return [id, m] as const;
-            } else {
-              // ensure we don’t keep a poisoned cache
-              localStorage.removeItem(cacheKey(id));
-              return null;
             }
           } catch {
-            // on failure, remove any existing bad cache so we’ll retry next time
-            localStorage.removeItem(cacheKey(id));
-            return null;
+            // swallow; we'll treat as a miss below
           }
+          return null;
         })
       );
 
       if (!alive) return;
 
-      const fetched = fetchedPairs
-        .filter(Boolean)
-        .map(p => (p as readonly [string, Movie])[1]);
+      const fetched = fetchedPairs.filter(Boolean).map(p => (p as readonly [number, Movie])[1]);
+      const ordered = orderToIds(ids, fetched);
 
-      const allNow = [
-        ...cachedValid,
-        ...fetched,
-      ];
-
-      // Only consider “complete” if we truly have all valid movies
-      const complete = allNow.length === ids.length;
-
-      if (complete) {
-        localStorage.setItem(IDS_SIG_KEY, sig);
-        pruneCache(new Set(ids.map(norm)));
-      } else {
-        // don’t advance signature; keeps us in “refresh” mode next run
-      }
-
-      setMovies(orderToIds(ids, allNow));
+      // If some failed, you'll see partial results; adjust if you prefer "all-or-nothing"
+      setMovies(ordered);
       setLoadingMovieInfo(false);
     })();
 
     return () => { alive = false; controller.abort(); };
-  }, [sig, ids]);
+  }, [sig]); // depends on sorted signature of ids
 
   return { movies, loadingMovieInfo };
-}
-
-// Preserve the caller's order of ids
-function orderToIds(ids: string[], list: Movie[]): Movie[] {
-  const byId = new Map<string, Movie>();
-  for (const m of list) byId.set(norm(m.imdbId), m);
-  return ids.map(id => byId.get(norm(id))).filter(Boolean) as Movie[];
 }

@@ -2,15 +2,14 @@
 import type { Movie } from "../../types/movie";
 import { tmdbGetMovieByImdbId } from "./tmdb";
 
-export async function getMovieByImdbId(imdbId: string, signal?: AbortSignal): Promise<Movie> {
-  const m = await tmdbGetMovieByImdbId(imdbId, signal);
+export async function getMovieByTmdbId(tmdbID: number, signal?: AbortSignal): Promise<Movie> {
+  const m = await tmdbGetMovieByImdbId(tmdbID, signal);
   if (m) return m;
 
   // placeholder if TMDb has no match (or no API key yet)
   return {
-    id: imdbId,
-    imdbId,
-    title: imdbId,
+   tmdbID: NaN,
+    title: tmdbID.toString(),
     year: NaN,
     genres: [],
     flavors: [],

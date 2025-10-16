@@ -11,19 +11,11 @@ const uniq = <T,>(arr: T[]) => Array.from(new Set(arr));
 const img = (path?: string | null, size: TmdbImageSize = "w500"): string =>
   path ? `https://image.tmdb.org/t/p/${size}${path}` : "";
 
-export async function tmdbGetMovieByImdbId(imdbId: string, signal?: AbortSignal): Promise<Movie | null> {
+export async function tmdbGetMovieByImdbId(tmdbID: number, signal?: AbortSignal): Promise<Movie | null> {
   if (!TMDB_KEY) return null;
 
-  // Find TMDb id
-  const findUrl = `${TMDB_BASE}/find/${encodeURIComponent(imdbId)}?external_source=imdb_id&api_key=${TMDB_KEY}`;
-  const r1 = await fetch(findUrl, { signal });
-  if (!r1.ok) return null;
-  const d1 = await r1.json();
-  const tmdbId: number | undefined = d1?.movie_results?.[0]?.id;
-  if (!tmdbId) return null;
-
   // Details + credits + keywords
-  const detUrl = `${TMDB_BASE}/movie/${tmdbId}?append_to_response=credits,keywords,images&api_key=${TMDB_KEY}`;
+  const detUrl = `${TMDB_BASE}/movie/${tmdbID}?append_to_response=credits,keywords,images&api_key=${TMDB_KEY}`;
   const r2 = await fetch(detUrl, { signal });
   if (!r2.ok) return null;
   const d = await r2.json();
@@ -63,9 +55,8 @@ export async function tmdbGetMovieByImdbId(imdbId: string, signal?: AbortSignal)
   const crew = (d?.credits.crew as any[]).filter(c => importantCrew.includes(c.job)).map(d => d.name);
 
   return {
-    id: imdbId,
-    imdbId,
-    title: d?.title ?? imdbId,
+    tmdbID: d?.id,
+    title: d?.title ?? tmdbID,
     year: d?.release_date ? Number(String(d.release_date).slice(0, 4)) : NaN,
     genres: (d?.genres ?? []).map((g: { name?: string }) => g?.name).filter(Boolean) as string[],
     keywords: uniq(rawKeywords),  

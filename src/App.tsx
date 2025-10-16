@@ -53,9 +53,14 @@ const App: React.FC = () => {
 
   const accentColor = "#f0e68c";
 
-  const { movieIDs, loadingIDs } = useMovieIDs();
+  const { movieIDs, loadingIDs, error } = useMovieIDs();
 
-  const { movies, loadingMovieInfo } = useLoadMovies(movieIDs as unknown as string[]);
+  if (error)
+  {
+    console.error(error);
+  }
+
+  const { movies, loadingMovieInfo } = useLoadMovies(movieIDs as unknown as number[]);
 
   const loading = loadingIDs || loadingMovieInfo;
 
@@ -202,7 +207,7 @@ const App: React.FC = () => {
   const anyDropdownOpen = openKey !== null;
 
   const dropdownPlaceholder = (tagType: string, optionArray: DropdownOption[]): string => {
-    return optionArray.length > 0 ? `Filter ${tagType}...` : `No Results`;
+    return optionArray.length > 0 || loading ? `Filter ${tagType}...` : `No Results`;
   }
 
   // Optional: instantly kill keyboard the moment any dropdown opens
@@ -213,8 +218,15 @@ const App: React.FC = () => {
   return (
     <div className="ml-app">
       {/* Sticky title header */}
-      <div className="ml-sticky">
-        <div className="ml-header" onClick={() => scrollToTop()}>
+      <div
+          className="ml-sticky"
+          role="button"
+          tabIndex={0}
+          onClick={scrollToTop}                // <-- use onClick
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && scrollToTop()}
+          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+        >
+        <div className="ml-header" >
           <img src="/logo.png" alt="Jeff's Movies" className="ml-logo" height={40} onClick={logoClicked} />
           {/* <Button label="Refresh Movies" accentColor="#242636"
                   borderColor="transparent"
@@ -256,7 +268,7 @@ const App: React.FC = () => {
             maxDisplaySelect={2}
             isOpen={openKey === "genre"}
             onOpenChange={(next) => setOpenKey(next ? "genre" : null)}
-            placeholderColor="#f0f0f0"
+            filledPlaceholderColor="#757575"
           />
 
           <Dropdown
@@ -274,7 +286,7 @@ const App: React.FC = () => {
             style={{ width: "auto" }}
             isOpen={openKey === "flavor"}
             onOpenChange={(next) => setOpenKey(next ? "flavor" : null)}
-            placeholderColor="#f0f0f0"
+            filledPlaceholderColor="#757575"
           />
 
           <Dropdown
@@ -292,7 +304,7 @@ const App: React.FC = () => {
             style={{ width: "auto" }}
             isOpen={openKey === "keyword"}
             onOpenChange={(next) => setOpenKey(next ? "keyword" : null)}
-            placeholderColor="#f0f0f0"
+            filledPlaceholderColor="#757575"
           />
 
           <div
@@ -347,7 +359,7 @@ const App: React.FC = () => {
           {visible.length === 0 && <div className="ml-loading"></div>}
           {!loading &&
             visible.map((m) => (
-              <article key={m.imdbId} className="ml-card" onClick={() => setOpenMovie(m)}>
+              <article key={m.tmdbID} className="ml-card" onClick={() => setOpenMovie(m)}>
                 <div className="ml-card__posterWrap">
                   {m.posterUrl ? (
                     <img className="ml-card__poster" src={m.posterUrl} alt={m.title} />

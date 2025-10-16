@@ -1,67 +1,75 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-type JsonShape =
-    | string[]                                      // ["tt123", ...]
-    | { imdbID: string }[]                          // [{ imdbID: "tt123" }, ...]
-    | Record<string, unknown>;                      // { "tt123": {...} } or { "tt123": "tt123", ...}
+const TMDB_V4_BEARER =
+  (import.meta.env.VITE_TMDB_ACCESS_KEY as string | undefined) ||
+  (import.meta.env.VITE_TMDB_ACCESS_KEY as string | undefined); // fallback if you renamed it
 
-/** Extract imdb IDs from a few common JSON shapes */
-function normalizeToIds(json: JsonShape): string[] {
-    if (Array.isArray(json)) {
-        if (json.length === 0) return [];
-        if (typeof json[0] === "string") return json as string[];
-        // array of objects with imdbID
-        return (json as Array<{ imdbID?: string }>)
-            .map(o => (o && typeof o === "object" ? o.imdbID : undefined))
-            .filter((v): v is string => typeof v === "string");
-    }
-    // object map: keys are ids, or values equal ids
-    const entries = Object.entries(json);
-    const idsFromKeys = entries.map(([k]) => k).filter(k => k.startsWith("tt"));
-    const idsFromValues = entries
-        .map(([, v]) => (typeof v === "string" && v.startsWith("tt") ? v : undefined))
-        .filter((v): v is string => !!v);
-    return idsFromKeys.length >= idsFromValues.length ? idsFromKeys : idsFromValues;
-}
+const TMDB_ACCOUNT_ID = 22384729; // your account id
+const TMDB_BASE = "https://api.themoviedb.org/3";
 
-export function useMovieIDs(
-    url = "https://jmdb-movie-list.s3.us-east-1.amazonaws.com/movies.json"
-) {
-    const [movieIDs, setMovieIDs] = useState<string[]>([]);
-    const [loadingIDs, setLoading] = useState(true);
-    const [error, setError] = useState<Error | null>(null);
-    const urlRef = useRef(url);
+type TmdbMovie = { id: number };
+type FavPage = { page: number; total_pages: number; results: TmdbMovie[] };
 
-    const reload = useMemo(() => {
-        return async () => {
-            setLoading(true);
-            setError(null);
-            const ac = new AbortController();
-            try {
-                const res = await fetch(urlRef.current, {
-                    // avoid stale content while you iterate
-                    cache: "no-store",
-                    signal: ac.signal
-                });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const json = (await res.json()) as JsonShape;
-                setMovieIDs(normalizeToIds(json));
-            } catch (e) {
-                setError(e as Error);
-                setMovieIDs([]);
-            } finally {
-                setLoading(false);
-            }
-            return () => ac.abort();
+export function useMovieIDs() {
+  const [movieIDs, setMovieIDs] = useState<number[]>([]);
+  const [loadingIDs, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const reload = useMemo(() => {
+    return async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        if (!TMDB_V4_BEARER) {
+          throw new Error("Missing VITE_TMDB_ACCESS_KEY (v4 Bearer token).");
+        }
+
+        const headers = {
+          Authorization: `Bearer ${TMDB_V4_BEARER}`,
+          Accept: "application/json",
+          "Content-Type": "application/json;charset=utf-8",
         };
-    }, []);
 
-    useEffect(() => {
-        urlRef.current = url;
-        // fire and forget
-        void reload();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [url]);
+        // First page
+        const firstUrl =
+          `${TMDB_BASE}/account/${TMDB_ACCOUNT_ID}/favorite/movies` +
+          `?language=en-US&page=1&sort_by=created_at.asc`;
+        const r1 = await fetch(firstUrl, { headers, cache: "no-store" });
+        if (!r1.ok) throw new Error(`TMDb HTTP ${r1.status}`);
+        const p1 = (await r1.json()) as FavPage;
 
-    return { movieIDs, loadingIDs, error, reload };
+        const ids: number[] = (p1.results ?? [])
+          .map((m) => m.id)
+          .filter((n) => Number.isFinite(n));
+
+        // Remaining pages
+        const totalPages = p1.total_pages ?? 1;
+        for (let page = 2; page <= totalPages; page++) {
+          const url =
+            `${TMDB_BASE}/account/${TMDB_ACCOUNT_ID}/favorite/movies` +
+            `?language=en-US&page=${page}&sort_by=created_at.asc`;
+          const r = await fetch(url, { headers, cache: "no-store" });
+          if (!r.ok) throw new Error(`TMDb HTTP ${r.status}`);
+          const pj = (await r.json()) as FavPage;
+          (pj.results ?? []).forEach((m) => {
+            if (typeof m.id === "number") ids.push(m.id);
+          });
+        }
+
+        setMovieIDs(ids);
+      } catch (e) {
+        setError(e as Error);
+        setMovieIDs([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  return { movieIDs, loadingIDs, error, reload };
 }

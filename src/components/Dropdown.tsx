@@ -161,7 +161,9 @@ export interface DropdownProps {
     isOpen?: boolean;                     // controlled
   onOpenChange?: (open: boolean) => void;
 
-  placeholderColor?: string
+  emptyPlaceholderColor?: string;
+
+  filledPlaceholderColor?: string;
 }
 
 const DropdownMenu: React.FC<{
@@ -359,7 +361,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
     hoverColor,
     darkMode = false,
     searchable = false,
-    xButtonColor, label, isOpen, onOpenChange, placeholderColor
+    xButtonColor, label, isOpen, onOpenChange, emptyPlaceholderColor, filledPlaceholderColor
 }) => {
     const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
     const open = isOpen ?? uncontrolledOpen;
@@ -517,6 +519,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
         toggleOpen();
     };
 
+    const somethingSelected = (displayLabel === placeholder);
+
     return (
         <div
             ref={wrapperRef}
@@ -541,6 +545,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                         setSearchText(e.target.value);
                     }
                 }}
+                fontColor={somethingSelected ? filledPlaceholderColor : fontColor}
                 // onClick={() => !disabled && setIsOpen(!isOpen)}
                 onPointerDown={handlePointerDownOnInput}
                 // onTouchEnd={() => !disabled && setIsOpen(!isOpen)}
@@ -555,7 +560,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                     letterSpacing: "0.04em",
                     minWidth: 0,
                 }}
-                placeholderColor={placeholderColor}
+                emptyPlaceholerColor={emptyPlaceholderColor}
             />
             {open && !disabled && (
                 <DropdownMenu
