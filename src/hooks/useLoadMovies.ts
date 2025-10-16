@@ -83,7 +83,6 @@ export function useLoadMovies(ids: number[]) {
               REQ_TIMEOUT_MS,
               perIdAbort
             );
-            console.log("made api call")
             if (isValidMovie(m, id)) {
               return [id, m] as const;
             }
