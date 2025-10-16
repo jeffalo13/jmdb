@@ -15,3 +15,8 @@
    font-weight: 600;
    letter-spacing: 0.05em;
 }
+
+.prizm-ui::placeholder {
+  color: var(--placeholder-color, #757575);
+  opacity: 1; /* iOS Safari lowers this by default */
+}

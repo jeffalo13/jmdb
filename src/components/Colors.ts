@@ -9,6 +9,7 @@
     //accent colors
     export const SoftBlue = "#8ab4f8"
     export const TrueBlue = "#4285F4"
+    export const EmptyGray = "#757575"
 
     //other colors
     export const Coral = "#f08080"

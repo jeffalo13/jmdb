@@ -24,6 +24,7 @@ export interface InputBoxProps extends React.InputHTMLAttributes<HTMLInputElemen
     labelPosition?: "left" | "right"; // Optional: support both
     labelColorStatic?: string;
     focusOverride?: "normal" | "no-pointer-focus" | "no-focus";
+    placeholderColor?: string;
 }
 
 // This InputBox is both controlled and uncontrolled friendly!
@@ -37,7 +38,7 @@ export const InputBox = forwardRef<HTMLInputElement, InputBoxProps>(({
     backgroundColor, borderColor, fontColor,
     password, search, showPasswordToggle,
     value: propValue, onChange: propOnChange,
-    rightIconProp, label, labelPosition, labelColorStatic, focusOverride = "normal",
+    rightIconProp, label, labelPosition, labelColorStatic, focusOverride = "normal", placeholderColor,
     ...props
 }, ref) => {
 
@@ -111,6 +112,7 @@ export const InputBox = forwardRef<HTMLInputElement, InputBoxProps>(({
             (accentColorLightMode ?? TrueBlue)
         );
     const LabelColor = labelColorStatic ?? (focused ? AccentColor : BorderColor);
+    const PlaceholderColor = placeholderColor ?? Colors.EmptyGray;
 
     return (
         <div style={{ position: "relative", width: "100%", ...style }}>
@@ -200,7 +202,9 @@ export const InputBox = forwardRef<HTMLInputElement, InputBoxProps>(({
                     WebkitUserSelect: "text",
                     touchAction: "manipulation",
                     cursor: props.readOnly ? "pointer" : (props.disabled ? "not-allowed" : "text"),
-                    paddingRight: (rightIconProp ? rightIconWidth + 20 : undefined)
+                    paddingRight: (rightIconProp ? rightIconWidth + 20 : undefined),
+                    // @ts-ignore: custom CSS var
+                    '--placeholder-color': PlaceholderColor
                 }}
             />
             {rightIconWithRef}

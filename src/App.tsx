@@ -77,7 +77,10 @@ const App: React.FC = () => {
       movie.title.toLowerCase().includes(t) ||
       inArr(movie.genres) ||
       inArr(movie.flavors) ||
-      inArr(movie.keywords)
+      inArr(movie.keywords) ||
+      inArr(movie.actors) ||
+      inArr(movie.crew)
+
     );
   };
 
@@ -198,6 +201,10 @@ const App: React.FC = () => {
 
   const anyDropdownOpen = openKey !== null;
 
+  const dropdownPlaceholder = (tagType: string, optionArray: DropdownOption[]): string => {
+    return optionArray.length > 0 ? `Filter ${tagType}...` : `No Results`;
+  }
+
   // Optional: instantly kill keyboard the moment any dropdown opens
   useEffect(() => {
     if (anyDropdownOpen) (document.activeElement as HTMLElement | null)?.blur?.();
@@ -209,6 +216,10 @@ const App: React.FC = () => {
       <div className="ml-sticky">
         <div className="ml-header">
           <img src="/logo.png" alt="Jeff's Movies" className="ml-logo" height={40} onClick={logoClicked} />
+          {/* <Button label="Refresh Movies" accentColor="#242636"
+                  borderColor="transparent"
+                  // style={{ borderRadius: 4, fontSize: "11px", height: "23px", lineHeight: 1 }} // line-height helps text centering
+                  onClick={() => resetFilters()}></Button> */}
         </div>
 
 
@@ -216,7 +227,7 @@ const App: React.FC = () => {
       <div className="ml-shell">
         <section className="ml-controlsStack">
           <SearchBox
-            backgroundColor="#0b0c10"
+            backgroundColor="#0d0e12"
             accentColor={accentColor}
             darkMode
             value={term}
@@ -230,7 +241,7 @@ const App: React.FC = () => {
           />
 
           <Dropdown
-            backgroundColor="#0b0c10"
+            backgroundColor="#0d0e12"
             // searchable
             // label="Genre"
             darkMode
@@ -239,17 +250,17 @@ const App: React.FC = () => {
             selectedKeys={selectedGenres}
             onChange={(v) => setSelectedGenres(Array.isArray(v) ? v.map(String) : [String(v)])}
             multiSelect
-            placeholder="Filter Genre..."
+            placeholder={dropdownPlaceholder("Genre", genreOptions)}
             showSelectAll={true}
             style={{ width: "auto" }}
             maxDisplaySelect={2}
             isOpen={openKey === "genre"}
             onOpenChange={(next) => setOpenKey(next ? "genre" : null)}
-
+            placeholderColor="#f0f0f0"
           />
 
           <Dropdown
-            backgroundColor="#0b0c10"
+            backgroundColor="#0d0e12"
             // searchable
             // label="Flavor"
             darkMode
@@ -259,17 +270,17 @@ const App: React.FC = () => {
             onChange={(v) => setSelectedFlavors(Array.isArray(v) ? v.map(String) : [String(v)])}
             multiSelect
             showSelectAll={true}
-            placeholder="Filter Flavor..."
+            placeholder={dropdownPlaceholder("Flavor", flavorOptions)}
             style={{ width: "auto" }}
             isOpen={openKey === "flavor"}
             onOpenChange={(next) => setOpenKey(next ? "flavor" : null)}
+            placeholderColor="#f0f0f0"
           />
 
           <Dropdown
-            backgroundColor="#0b0c10"
+            backgroundColor="#0d0e12"
             // searchable
             // label="Keywords"
-            fontColor={accentColor}
             darkMode
             options={keywordOptions}
             accentColor={accentColor}
@@ -277,10 +288,11 @@ const App: React.FC = () => {
             onChange={(v) => setSelectedKeywords(Array.isArray(v) ? v.map(String) : [String(v)])}
             multiSelect
             showSelectAll={true}
-            placeholder="Filter Keyword..."
+            placeholder={dropdownPlaceholder("Keyword", keywordOptions)}
             style={{ width: "auto" }}
             isOpen={openKey === "keyword"}
             onOpenChange={(next) => setOpenKey(next ? "keyword" : null)}
+            placeholderColor="#f0f0f0"
           />
 
           <div
@@ -293,7 +305,7 @@ const App: React.FC = () => {
           >
             <div style={{ display: "flex", alignItems: "center" }}>
               <Button
-                label="Clear Filters"
+                label={`Clear Filters`}
                 accentColor="#242636"
                 borderColor="transparent"
                 style={{ borderRadius: 4, fontSize: "11px", height: "23px", lineHeight: 1 }} // line-height helps text centering
@@ -305,7 +317,8 @@ const App: React.FC = () => {
                 <Button
                   label={`${tagText} ✕`}
                   accentColor="#242636"
-                  borderColor="transparent"
+                  borderColor="#f0e68c"
+                  fontColor="#f0e68c"
                   style={{ borderRadius: 4, fontSize: "11px", height: "23px", lineHeight: 1 }} // line-height helps text centering
                   onClick={() => resetFilters()}
                 />
@@ -322,9 +335,12 @@ const App: React.FC = () => {
             </div>
           </div>
 
+          
+
 
 
         </section>
+        <div className="mp-tagline">{`${filtered.length} Movies`}</div>
         {/* Poster grid */}
         <main className="ml-grid">
           {loading && <div className="ml-loading">Loading 4k Blu-ray Collection...</div>}

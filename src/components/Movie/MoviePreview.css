@@ -94,7 +94,7 @@
 .mp-year {
   color: var(--text);
   font-weight: 400;
-  margin-left: 6px;
+  /* margin-left: 6px; */
   font-style: italic;
 }
 
@@ -186,7 +186,7 @@
   border-radius: 4px;
   padding: 2px 8px;          /* little padding on the ends */
   font-size: 10px;
-  margin-left: 1.5em;
+  margin-left: 3em;
   text-align: center;         /* center the text inside */
 }
 

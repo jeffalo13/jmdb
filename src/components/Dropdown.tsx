@@ -160,6 +160,8 @@ export interface DropdownProps {
 
     isOpen?: boolean;                     // controlled
   onOpenChange?: (open: boolean) => void;
+
+  placeholderColor?: string
 }
 
 const DropdownMenu: React.FC<{
@@ -357,7 +359,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
     hoverColor,
     darkMode = false,
     searchable = false,
-    xButtonColor, label, isOpen, onOpenChange
+    xButtonColor, label, isOpen, onOpenChange, placeholderColor
 }) => {
     const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
     const open = isOpen ?? uncontrolledOpen;
@@ -553,6 +555,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                     letterSpacing: "0.04em",
                     minWidth: 0,
                 }}
+                placeholderColor={placeholderColor}
             />
             {open && !disabled && (
                 <DropdownMenu
