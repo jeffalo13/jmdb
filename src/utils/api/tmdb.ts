@@ -35,9 +35,17 @@ export async function tmdbGetMovieByImdbId(imdbId: string, signal?: AbortSignal)
   const backdropUrl = img(d?.backdrop_path, "original");
 
     // Alternative posters (sorted by vote_count desc then width desc)
+
+  const isUSAPoster = (countryCode: string, languageCode: string): boolean =>
+  {
+    if (!countryCode || !languageCode) return false;
+    return countryCode === "US" && languageCode === "en";
+  }
+
   const posters: string[] = (d?.images?.posters ?? [])
     .slice()
-    .sort((a: any, b: any) => (b?.vote_count || 0) - (a?.vote_count || 0) || (b?.width || 0) - (a?.width || 0))
+    .filter((f: any) => isUSAPoster(f?.iso_3166_1, f?.iso_639_1))
+    .sort((a: any, b: any) => (b?.vote_average || 0) - (a?.vote_average || 0) || (b?.width || 0) - (a?.width || 0))
     .map((p: any) => img(p?.file_path, "w500"))
     .filter(Boolean);
 
