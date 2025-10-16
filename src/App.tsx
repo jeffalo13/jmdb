@@ -214,7 +214,7 @@ const App: React.FC = () => {
     <div className="ml-app">
       {/* Sticky title header */}
       <div className="ml-sticky">
-        <div className="ml-header">
+        <div className="ml-header" onClick={() => scrollToTop()}>
           <img src="/logo.png" alt="Jeff's Movies" className="ml-logo" height={40} onClick={logoClicked} />
           {/* <Button label="Refresh Movies" accentColor="#242636"
                   borderColor="transparent"
