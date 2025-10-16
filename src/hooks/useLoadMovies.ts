@@ -3,7 +3,7 @@ import type { Movie } from "../types/movie";
 import { getMovieByImdbId } from "../utils/api/getMovieByImdbID";
 
 // ----- config
-const CACHE_PREFIX = "mlib:v26:";               // bump when cache shape changes
+const CACHE_PREFIX = "mlib:v28:";               // bump when cache shape changes
 const IDS_SIG_KEY = `${CACHE_PREFIX}@ids-sig`;  // normalized list signature
 
 // ----- helpers

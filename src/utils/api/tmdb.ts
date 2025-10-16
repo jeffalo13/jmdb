@@ -23,7 +23,7 @@ export async function tmdbGetMovieByImdbId(imdbId: string, signal?: AbortSignal)
   if (!tmdbId) return null;
 
   // Details + credits + keywords
-  const detUrl = `${TMDB_BASE}/movie/${tmdbId}?append_to_response=credits,keywords&api_key=${TMDB_KEY}`;
+  const detUrl = `${TMDB_BASE}/movie/${tmdbId}?append_to_response=credits,keywords,images&api_key=${TMDB_KEY}`;
   const r2 = await fetch(detUrl, { signal });
   if (!r2.ok) return null;
   const d = await r2.json();
@@ -41,7 +41,7 @@ export async function tmdbGetMovieByImdbId(imdbId: string, signal?: AbortSignal)
     .map((p: any) => img(p?.file_path, "w500"))
     .filter(Boolean);
 
-  const altPosters = uniq(posters.filter((u: string) => u !== primaryPoster)).slice(0, 4);
+  const altPosters = uniq(posters.filter((u: string) => u !== primaryPoster)).slice(0, 2);
 
   const rawKeywords: string[] = (d?.keywords?.keywords ?? [])
     .map((k: { name?: string }) => k?.name)
