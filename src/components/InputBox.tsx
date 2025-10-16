@@ -19,11 +19,11 @@ export interface InputBoxProps extends React.InputHTMLAttributes<HTMLInputElemen
     password?: boolean
     showPasswordToggle?: boolean;
     search?: boolean
-    rightIconProp?: React.ReactNode; 
+    rightIconProp?: React.ReactNode;
     label?: string;
     labelPosition?: "left" | "right"; // Optional: support both
     labelColorStatic?: string;
-
+    focusOverride?: "normal" | "no-pointer-focus" | "no-focus";
 }
 
 // This InputBox is both controlled and uncontrolled friendly!
@@ -37,7 +37,7 @@ export const InputBox = forwardRef<HTMLInputElement, InputBoxProps>(({
     backgroundColor, borderColor, fontColor,
     password, search, showPasswordToggle,
     value: propValue, onChange: propOnChange,
-    rightIconProp, label, labelPosition, labelColorStatic,
+    rightIconProp, label, labelPosition, labelColorStatic, focusOverride = "normal",
     ...props
 }, ref) => {
 
@@ -48,6 +48,12 @@ export const InputBox = forwardRef<HTMLInputElement, InputBoxProps>(({
     const [rightIconWidth, setRightIconWidth] = useState(0);
 
     const [focused, setFocused] = useState(false);
+
+    // helpers
+    const blockPointerFocus = focusOverride === "no-pointer-focus" || focusOverride === "no-focus";
+    const blockAnyFocus = focusOverride === "no-focus";
+
+
 
     useLayoutEffect(() => {
         if (rightIconRef.current) {
@@ -107,7 +113,7 @@ export const InputBox = forwardRef<HTMLInputElement, InputBoxProps>(({
     const LabelColor = labelColorStatic ?? (focused ? AccentColor : BorderColor);
 
     return (
-        <div style={{ position: "relative", width: "100%", ...style}}>
+        <div style={{ position: "relative", width: "100%", ...style }}>
             {label && (
                 <span className="prizm-ui"
                     style={{
@@ -121,14 +127,14 @@ export const InputBox = forwardRef<HTMLInputElement, InputBoxProps>(({
                         pointerEvents: "none",
                         zIndex: 2,
                         transition: "color 0.2s",
-                        
+
                     }}
                 >
                     {label}
                 </span>
             )}
             <input
-                
+
                 ref={node => {
                     inputRef.current = node;
                     if (typeof ref === "function") ref(node);
@@ -140,7 +146,25 @@ export const InputBox = forwardRef<HTMLInputElement, InputBoxProps>(({
                 type={"text"}
                 value={value}
                 onChange={handleChange}
-                onFocus={e => {
+                /* NEW: guard focus routes */
+                onPointerDown={(e) => {
+                    // If we’re blocking pointer focus, prevent default to stop the focus/caret
+                    if (blockPointerFocus) {
+                        e.preventDefault();
+                        // If it somehow already had focus (rare), blur it
+                        inputRef.current?.blur();
+                    }
+                    // Allow caller’s pointer handler to run afterwards, if they passed one
+                    props.onPointerDown && props.onPointerDown(e);
+                }}
+                onFocus={(e) => {
+                    if (blockAnyFocus) {
+                        // Immediately bounce focus away
+                        e.preventDefault();
+                        // Some browsers still focus briefly; ensure blur
+                        e.currentTarget.blur();
+                        return;
+                    }
                     setFocused(true);
                     e.currentTarget.style.borderColor = AccentColor;
                     e.currentTarget.style.boxShadow = `0 0 0 2px ${AccentColor}22`;
@@ -152,6 +176,11 @@ export const InputBox = forwardRef<HTMLInputElement, InputBoxProps>(({
                     e.currentTarget.style.boxShadow = "none";
                     props.onBlur && props.onBlur(e);
                 }}
+
+                /* Accessibility + mobile keyboard hints */
+                tabIndex={blockAnyFocus ? -1 : props.tabIndex}
+                // inputmode="none" hints mobile to not show keyboard; combined with pointer block is reliable
+                inputMode={blockPointerFocus ? "none" : props.inputMode}
                 {...props}
                 style={{
                     caretColor: AccentColor,

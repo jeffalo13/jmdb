@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
 // import { IMDB_IDS } from "./data/imdbIDs";
@@ -196,6 +196,13 @@ const App: React.FC = () => {
     setSortMode("alpha")
   }
 
+  const anyDropdownOpen = openKey !== null;
+
+  // Optional: instantly kill keyboard the moment any dropdown opens
+  useEffect(() => {
+    if (anyDropdownOpen) (document.activeElement as HTMLElement | null)?.blur?.();
+  }, [anyDropdownOpen]);
+
   return (
     <div className="ml-app">
       {/* Sticky title header */}
@@ -215,6 +222,11 @@ const App: React.FC = () => {
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             placeholder="Search Anything..."
+            focusOverride={anyDropdownOpen ? "no-pointer-focus" : "normal"}
+            onPointerDown={(_e) => {
+              // if a dropdown is open, close it and allow this input to focus (don’t preventDefault)
+              if (openKey) setOpenKey(null);
+            }}
           />
 
           <Dropdown

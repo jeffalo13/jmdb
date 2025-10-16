@@ -89,6 +89,7 @@ export const SearchBox = React.forwardRef<HTMLInputElement, SearchBoxProps>(({xB
             autoCapitalize="off"
             spellCheck={false}
             name="q"
+        
         />
     );
 });
