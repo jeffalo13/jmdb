@@ -62,7 +62,7 @@ const App: React.FC = () => {
 
   const { movies, loadingMovieInfo } = useLoadMovies(movieIDs as unknown as number[]);
 
-  const loading = loadingIDs || loadingMovieInfo;
+  const loading = loadingIDs || loadingMovieInfo || movies.length === 0;
 
   const toOptions = (items: string[]): DropdownOption[] => {
     const toArray = Array.from(new Set(items))

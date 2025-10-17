@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { TMDB_V4_BEARER } from "../env";
 
-const TMDB_ACCOUNT_ID = 22384729; // your account id
-const TMDB_BASE = "https://api.themoviedb.org/3";
+// Configure your API base, e.g. VITE_API_BASE="https://tesseract-api.com"
+const API_BASE = `https://tesseract-api.com/v1/`
 
+// Your TMDB account id (can also be made a prop or env)
+const TMDB_ACCOUNT_ID = 22384729;
+
+// ---- types (unchanged) ----
 type TmdbMovie = { id: number };
 type FavPage = { page: number; total_pages: number; results: TmdbMovie[] };
 
@@ -18,37 +21,37 @@ export function useMovieIDs() {
       setError(null);
 
       try {
-        if (!TMDB_V4_BEARER) {
-          throw new Error("Missing VITE_TMDB_ACCESS_KEY (v4 Bearer token).");
+        if (!API_BASE) {
+          throw new Error("Missing VITE_API_BASE for your backend.");
         }
 
-        const headers = {
-          Authorization: `Bearer ${TMDB_V4_BEARER}`,
-          Accept: "application/json",
-          "Content-Type": "application/json;charset=utf-8",
-        };
+        const base = API_BASE.replace(/\/$/, "");
+        const endpoint = `${base}/tmdb/tmdb-account-favorites-get`;
 
         // First page
         const firstUrl =
-          `${TMDB_BASE}/account/${TMDB_ACCOUNT_ID}/favorite/movies` +
-          `?language=en-US&page=1&sort_by=created_at.asc`;
-        const r1 = await fetch(firstUrl, { headers, cache: "no-store" });
-        if (!r1.ok) throw new Error(`TMDb HTTP ${r1.status}`);
+          `${endpoint}?accountId=${encodeURIComponent(String(TMDB_ACCOUNT_ID))}` +
+          `&language=en-US&page=1&sort_by=created_at.asc`;
+
+        const r1 = await fetch(firstUrl, { method: "GET", cache: "no-store" });
+        if (!r1.ok) throw new Error(`API HTTP ${r1.status}`);
         const p1 = (await r1.json()) as FavPage;
 
         const ids: number[] = (p1.results ?? [])
           .map((m) => m.id)
           .filter((n) => Number.isFinite(n));
 
-        // Remaining pages
+        // Remaining pages (frontend keeps the logic)
         const totalPages = p1.total_pages ?? 1;
         for (let page = 2; page <= totalPages; page++) {
           const url =
-            `${TMDB_BASE}/account/${TMDB_ACCOUNT_ID}/favorite/movies` +
-            `?language=en-US&page=${page}&sort_by=created_at.asc`;
-          const r = await fetch(url, { headers, cache: "no-store" });
-          if (!r.ok) throw new Error(`TMDb HTTP ${r.status}`);
+            `${endpoint}?accountId=${encodeURIComponent(String(TMDB_ACCOUNT_ID))}` +
+            `&language=en-US&page=${page}&sort_by=created_at.asc`;
+
+          const r = await fetch(url, { method: "GET", cache: "no-store" });
+          if (!r.ok) throw new Error(`API HTTP ${r.status}`);
           const pj = (await r.json()) as FavPage;
+
           (pj.results ?? []).forEach((m) => {
             if (typeof m.id === "number") ids.push(m.id);
           });
