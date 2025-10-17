@@ -148,7 +148,7 @@ export const InputBox = forwardRef<HTMLInputElement, InputBoxProps>(({
                 type={"text"}
                 value={value}
                 onChange={handleChange}
-                /* NEW: guard focus routes */
+                enterKeyHint="done"
                 onPointerDown={(e) => {
                     // If we’re blocking pointer focus, prevent default to stop the focus/caret
                     if (blockPointerFocus) {
@@ -177,6 +177,23 @@ export const InputBox = forwardRef<HTMLInputElement, InputBoxProps>(({
                     e.currentTarget.style.borderColor = BorderColor;
                     e.currentTarget.style.boxShadow = "none";
                     props.onBlur && props.onBlur(e);
+                }}
+                onKeyDown={(e) => {
+                    // let any consumer handler run first
+                    props.onKeyDown?.(e);
+
+                    // ignore while composing (IME)
+                    if ((e as any).isComposing) return;
+
+                    // blur on Enter/Go/Done (covers mobile variants)
+                    if (
+                        e.key === "Enter" ||
+                        e.key === "Go" ||
+                        e.key === "Done"
+                    ) {
+                        e.preventDefault();          // stop form submit / page refresh
+                        (e.currentTarget as HTMLInputElement).blur();
+                    }
                 }}
 
                 /* Accessibility + mobile keyboard hints */
