@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Movie } from "../../types/movie";
 import "./MoviePreview.css";
 
@@ -20,7 +20,6 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
   const [showKeywords, setShowKeywords] = useState(false);
   const [showCast, setShowCast] = useState(false);
   const [exiting, setExiting] = useState(false);
-
 
   // primary first, then unique alt posters
   const posters = useMemo(() => {
@@ -76,46 +75,6 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
     next();
   };
 
-  useLayoutEffect(() => {
-    if (!movie) return;
-
-    const y = window.scrollY;
-    const body = document.body;
-    const html = document.documentElement;
-
-    // remember previous inline styles we touch
-    const prev = {
-      bodyPos: body.style.position,
-      bodyTop: body.style.top,
-      bodyLeft: body.style.left,
-      bodyRight: body.style.right,
-      bodyWidth: body.style.width,
-      bodyOverflow: body.style.overflow,
-      htmlOverflow: html.style.overflow,
-    };
-
-    // lock
-    body.style.position = "fixed";
-    body.style.top = `-${y}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.width = "100%";
-    body.style.overflow = "hidden";   // belt-and-suspenders
-    html.style.overflow = "hidden";   // blocks scroll chaining on some browsers
-
-    return () => {
-      // unlock & restore
-      body.style.position = prev.bodyPos;
-      body.style.top = prev.bodyTop;
-      body.style.left = prev.bodyLeft;
-      body.style.right = prev.bodyRight;
-      body.style.width = prev.bodyWidth;
-      body.style.overflow = prev.bodyOverflow;
-      html.style.overflow = prev.htmlOverflow;
-      window.scrollTo(0, y);          // restore exact scroll
-    };
-  }, [movie]);
-
   if (!movie) return null;
 
   const handleClose = () => {
@@ -133,22 +92,23 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
 
   }
 
-  const runtimePretty = (runtime: number) => {
+    const runtimePretty = (runtime: number) => {
     const hour = Math.floor(runtime / 60);
     const minutes = runtime % 60;
 
     return `${hour}h ${minutes}m`
   }
+
+
+
   return (
     <>
       <div className={`mp-backdrop ${exiting ? "is-exiting" : "is-open"}`}
-        onWheel={(e) => e.preventDefault()}          // eat mousewheel
-        onTouchMove={(e) => e.preventDefault()}      // eat touch move
-        onTransitionEnd={(e) => {
-          if (e.target === e.currentTarget && exiting) {
-            setExiting(false);      // unmount after fade-out
-          }
-        }} onClick={handleClose} />
+      onTransitionEnd={(e) => {
+        if (e.target === e.currentTarget && exiting) {
+          setExiting(false);      // unmount after fade-out
+        }
+      }} onClick={handleClose} />
       <section className={`mp-container ${exiting ? "is-exiting" : ""}`} role="dialog" aria-modal="true" aria-label={`${movie.title} details`}
         style={{ ['--mp-bg' as any]: `url(${movie.backdropUrl || movie.posterUrl})` }}>
         <header className="mp-header">
@@ -198,78 +158,78 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
             </div>
           )}
         </div>
-
+        
         <div className="mp-tagline">{movie.tagline}</div>
 
         {/* Meta */}
-        <div className="mp-meta">
-          {movie.genres.length > 0 && (
-            <div className="mp-row">
-              {movie.genres.map((g) => (
-                <button key={g} className={`mp-chip mp-chip-btn`} onClick={() => handleTagClicked("genre", g)}>{g}</button>
-              ))}
-            </div>
-          )}
-          {movie.flavors?.length > 0 && (
-            <div className="mp-row">
-              {movie.flavors.map((f) => (
-                <button key={f} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("flavor", f)}>{f}</button>
-              ))}
-            </div>
-          )}
+          <div className="mp-meta">                      
+            {movie.genres.length > 0 && (
+              <div className="mp-row">
+                {movie.genres.map((g) => (
+                  <button key={g} className={`mp-chip mp-chip-btn`} onClick={() => handleTagClicked("genre", g)}>{g}</button>
+                ))}
+              </div>
+            )}
+            {movie.flavors?.length > 0 && (
+              <div className="mp-row">
+                {movie.flavors.map((f) => (
+                  <button key={f} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("flavor", f)}>{f}</button>
+                ))}
+              </div>
+            )}
 
-          <div className="mp-vrow">
-            {/* keyword toggle */}
-            <button
-              type="button"
-              className="mp-chip mp-chip-btn"
-              aria-pressed={showKeywords}
-              onClick={() => setShowKeywords(!showKeywords)}
-            >
-              {showKeywords ? "Hide" : "Show"} Keywords
-            </button>
+            <div className="mp-vrow">
+              {/* keyword toggle */}
+              <button
+                type="button"
+                className="mp-chip mp-chip-btn"
+                aria-pressed={showKeywords}
+                onClick={() => setShowKeywords(!showKeywords)}
+              >
+                {showKeywords ? "Hide" : "Show"} Keywords
+              </button>
+            </div>
+            {showKeywords && (
+              <div className="mp-row">
+                {movie.keywords.map((k) => (
+                  <button key={k} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("keyword", k)}>
+                    {k}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* cast toggle */}
+            <div className="mp-vrow">
+              <button
+                type="button"
+                className="mp-chip mp-chip-btn"
+                aria-pressed={showCast}
+                onClick={() => setShowCast(!showCast)}
+              >
+                {showCast ? "Hide" : "Show"} Cast
+              </button>
+            </div>
+            {showCast && (
+              <div className="mp-row">
+                {movie.crew.map((c) => (
+                  <button key={c} className="mp-chip mp-chip--special" onClick={() => handleTagClicked("crew", c)}>
+                    {c}
+                  </button>
+                ))}
+                {movie.actors.map((a) => (
+                  <button key={a} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("cast", a)}>
+                    {a}
+                  </button>
+                ))}
+              </div>
+            )}
+            
+
+
           </div>
-          {showKeywords && (
-            <div className="mp-row">
-              {movie.keywords.map((k) => (
-                <button key={k} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("keyword", k)}>
-                  {k}
-                </button>
-              ))}
-            </div>
-          )}
 
-          {/* cast toggle */}
-          <div className="mp-vrow">
-            <button
-              type="button"
-              className="mp-chip mp-chip-btn"
-              aria-pressed={showCast}
-              onClick={() => setShowCast(!showCast)}
-            >
-              {showCast ? "Hide" : "Show"} Cast
-            </button>
-          </div>
-          {showCast && (
-            <div className="mp-row">
-              {movie.crew.map((c) => (
-                <button key={c} className="mp-chip mp-chip--special" onClick={() => handleTagClicked("crew", c)}>
-                  {c}
-                </button>
-              ))}
-              {movie.actors.map((a) => (
-                <button key={a} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("cast", a)}>
-                  {a}
-                </button>
-              ))}
-            </div>
-          )}
-
-
-
-        </div>
-
-        {movie.plot && <p className="mp-plot">{movie.plot}</p>}
+          {movie.plot && <p className="mp-plot">{movie.plot}</p>}
 
 
 

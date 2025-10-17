@@ -22,17 +22,12 @@
   opacity: 0;
   visibility: hidden;             /* prevent clicks when hidden */
   transition: opacity var(--fadeTime) ease, visibility var(--fadeTime) linear;
-    overflow: hidden;
-  overscroll-behavior: contain;
-  touch-action: none; /* stops touch scrolling on the backdrop area */
 }
-
 
 /* opening / visible */
 .mp-backdrop.is-open {
   opacity: 1;
   visibility: visible;
-  pointer-events: auto;          /* intercept clicks/touches */
 }
 
 /* closing (fade out) */
@@ -65,7 +60,6 @@
   border-radius: 16px 16px 0 0;
   max-height: 92vh;
   overflow-y: auto;
-  overflow: auto; /* modal scrolls; page underneath won't receive events */
   color: var(--text);
   animation: mp-slide-up var(--fadeTime) ease-out forwards;
 }
