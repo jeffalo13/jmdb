@@ -7,7 +7,7 @@ import type { Movie, SortKey } from "./types/movie";
 
 import { Dropdown, type DropdownOption } from "./components/Dropdown";
 import { SearchBox } from "./components/SearchBox";
-import MovieSheet from "./components/Movie/MoviePreview";
+import MoviePreview from "./components/Movie/MoviePreview";
 import { SortDropdown } from "./components/SortDropdown";
 import { Button } from "./components/Button";
 import { useMovieIDs } from "./hooks/useMovieIDs";
@@ -215,6 +215,9 @@ const App: React.FC = () => {
     if (anyDropdownOpen) (document.activeElement as HTMLElement | null)?.blur?.();
   }, [anyDropdownOpen]);
 
+  const allSelectedTags =  [...selectedGenres, ...selectedFlavors, ...selectedKeywords, ...selectedCast, ...selectedCast, term, tagText]
+  
+
   return (
     <div className="ml-app">
       {/* Sticky title header */}
@@ -373,7 +376,7 @@ const App: React.FC = () => {
         </main>
 
         {/* Mobile sheet with details */}
-        <MovieSheet movie={openMovie} onClose={() => setOpenMovie(null)}
+        <MoviePreview movie={openMovie} onClose={() => setOpenMovie(null)} searchTerms={allSelectedTags}
           onTagClicked={onTagClicked} />
       </div>
 

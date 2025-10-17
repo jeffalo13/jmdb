@@ -137,7 +137,7 @@ export function useLoadMovies(ids: number[]) {
 
           try {
             const m = await withTimeout(getMovieByTmdbId(id, perIdAbort.signal), REQ_TIMEOUT_MS, perIdAbort);
-            console.log('made api call')
+            // console.log('made api call')
             if (isValidMovie(m, id)) return [id, m] as const;
           } catch {
             // ignore; treat as miss

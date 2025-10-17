@@ -7,13 +7,14 @@ type TagType = "genre" | "flavor" | "keyword" | "cast" | "crew" | "search";
 
 interface Props {
   movie: Movie | null;
+  searchTerms: string[];
   onClose: () => void;
   onTagClicked: (type: TagType, tag: string) => void;
 }
 
 const SWIPE_PX = 30;
 
-const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
+const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked, searchTerms }) => {
   const [idx, setIdx] = useState(0);
   const startX = useRef<number | null>(null);
   const swiping = useRef(false);
@@ -99,6 +100,23 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
     return `${hour}h ${minutes}m`
   }
 
+const searchMatch = (tag: string) => {
+  if (!searchTerms) return false;
+
+  const cleanedTag = tag.trim().toLowerCase();
+
+  const cleanedTerms = searchTerms
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (cleanedTerms.length === 0) return false;
+
+  console.log(`cleanedTerms: ${cleanedTerms} cleanedTag:${cleanedTag}`)
+  console.log(cleanedTerms.some(t => cleanedTag.includes(t)))
+
+  // Match if the tag contains any term (e.g., "body horror" includes "horror")
+  return cleanedTerms.some(t => cleanedTag.includes(t));
+};
 
 
   return (
@@ -166,14 +184,14 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
             {movie.genres.length > 0 && (
               <div className="mp-row">
                 {movie.genres.map((g) => (
-                  <button key={g} className={`mp-chip mp-chip-btn`} onClick={() => handleTagClicked("genre", g)}>{g}</button>
+                  <button key={g} className={`mp-chip mp-chip-btn ${searchMatch(g) ? 'mp-chip--searchMatch' : ""}`} onClick={() => handleTagClicked("genre", g)}>{g}</button>
                 ))}
               </div>
             )}
             {movie.flavors?.length > 0 && (
               <div className="mp-row">
                 {movie.flavors.map((f) => (
-                  <button key={f} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("flavor", f)}>{f}</button>
+                  <button key={f} className={`mp-chip mp-chip--muted mp-chip-btn ${searchMatch(f) ? 'mp-chip--searchMatch' : ""}`} onClick={() => handleTagClicked("flavor", f)}>{f}</button>
                 ))}
               </div>
             )}
@@ -192,7 +210,7 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
             {showKeywords && (
               <div className="mp-row">
                 {movie.keywords.map((k) => (
-                  <button key={k} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("keyword", k)}>
+                  <button key={k} className={`mp-chip mp-chip--muted mp-chip-btn mp-chip-btn ${searchMatch(k) ? 'mp-chip--searchMatch' : ""}`} onClick={() => handleTagClicked("keyword", k)}>
                     {k}
                   </button>
                 ))}
@@ -213,12 +231,12 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
             {showCast && (
               <div className="mp-row">
                 {movie.crew.map((c) => (
-                  <button key={c} className="mp-chip mp-chip--special" onClick={() => handleTagClicked("crew", c)}>
+                  <button key={c} className={`mp-chip mp-chip--special mp-chip-btn ${searchMatch(c) ? 'mp-chip--searchMatch' : ""}`} onClick={() => handleTagClicked("crew", c)}>
                     {c}
                   </button>
                 ))}
                 {movie.actors.map((a) => (
-                  <button key={a} className="mp-chip mp-chip--muted" onClick={() => handleTagClicked("cast", a)}>
+                  <button key={a} className={`mp-chip mp-chip--muted mp-chip-btn ${searchMatch(a) ? 'mp-chip--searchMatch' : ""}`} onClick={() => handleTagClicked("cast", a)}>
                     {a}
                   </button>
                 ))}

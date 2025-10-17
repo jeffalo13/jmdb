@@ -8,7 +8,8 @@
   --chip-alt-bg: #3c4874;
   --chip-bg: #242636;        /* chip (primary) */
   --chip-muted-bg: #1e202d;  /* chip (muted/secondary) */
-  --fadeTime: 250ms
+  --fadeTime: 250ms;
+  --green: #46f1ad;
 }
 
 /* Overlay + Container */
@@ -219,8 +220,13 @@
   background: var(--chip-alt-bg);
   color: var(--muted);
   font-style: italic;
-  
 }
+
+.mp-chip--searchMatch {
+  color: var(--green);
+  /* border: 1px solid var(--green) */
+}
+
 
 /* Chip as a button/toggle */
 .mp-chip-btn {
