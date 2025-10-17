@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Movie } from "../../types/movie";
 import "./MoviePreview.css";
 
@@ -76,14 +76,43 @@ const MoviePreview: React.FC<Props> = ({ movie, onClose, onTagClicked }) => {
     next();
   };
 
-  useEffect(() => {
-    if (!movie) return; // only when open
+  useLayoutEffect(() => {
+    if (!movie) return;
 
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const y = window.scrollY;
+    const body = document.body;
+    const html = document.documentElement;
+
+    // remember previous inline styles we touch
+    const prev = {
+      bodyPos: body.style.position,
+      bodyTop: body.style.top,
+      bodyLeft: body.style.left,
+      bodyRight: body.style.right,
+      bodyWidth: body.style.width,
+      bodyOverflow: body.style.overflow,
+      htmlOverflow: html.style.overflow,
+    };
+
+    // lock
+    body.style.position = "fixed";
+    body.style.top = `-${y}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflow = "hidden";   // belt-and-suspenders
+    html.style.overflow = "hidden";   // blocks scroll chaining on some browsers
 
     return () => {
-      document.body.style.overflow = prev;
+      // unlock & restore
+      body.style.position = prev.bodyPos;
+      body.style.top = prev.bodyTop;
+      body.style.left = prev.bodyLeft;
+      body.style.right = prev.bodyRight;
+      body.style.width = prev.bodyWidth;
+      body.style.overflow = prev.bodyOverflow;
+      html.style.overflow = prev.htmlOverflow;
+      window.scrollTo(0, y);          // restore exact scroll
     };
   }, [movie]);
 
