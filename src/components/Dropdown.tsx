@@ -277,6 +277,7 @@ const DropdownOptionRow: React.FC<{
                         // overflow: "hidden",
                         textOverflow: "ellipsis",
                     }}
+                    onPointerUp={(e) => {e.stopPropagation(); onSelect()}}
                 >
                     {option.label}
                 </span>

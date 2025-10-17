@@ -86,7 +86,7 @@ body { margin: 0; background: var(--bg); color: var(--text);
 .ml-card__placeholder { color: var(--muted); font-size: 12px; padding: 8px; text-align: center; }
 .ml-card__title { padding: 8px 10px 10px; font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.ml-loading { padding: 12px 14px; color: var(--muted); width: 100vw; }
+.ml-loading { padding: 12px 14px; color: var(--muted); width: 100vw; font-weight: bold; }
 
 /* Sort buttons (now inline under controls) */
 .ml-sortRow { display: flex; gap: 8px; }
