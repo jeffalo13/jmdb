@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-
-const TMDB_V4_BEARER =
-  (import.meta.env.VITE_TMDB_ACCESS_KEY as string | undefined) ||
-  (import.meta.env.VITE_TMDB_ACCESS_KEY as string | undefined); // fallback if you renamed it
+import { TMDB_V4_BEARER } from "../env";
 
 const TMDB_ACCOUNT_ID = 22384729; // your account id
 const TMDB_BASE = "https://api.themoviedb.org/3";

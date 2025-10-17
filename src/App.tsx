@@ -352,7 +352,7 @@ const App: React.FC = () => {
 
 
         </section>
-        <div className="mp-tagline">{`${filtered.length} Movies`}</div>
+        <div className="mp-tagline">{loading ? "Loading..." : `${filtered.length} Movies`}</div>
         {/* Poster grid */}
         <main className="ml-grid">
           {loading && <div className="ml-loading">Loading 4k Blu-ray Collection...</div>}

@@ -1,9 +1,9 @@
 import type { Movie } from "../../types/movie";
 import {getFlavorsForKeywords} from "../../data/flavorMappings"
+import { TMDB_KEY } from "../../env";
 
 type TmdbImageSize = "w92" | "w154" | "w185" | "w342" | "w500" | "w780" | "original";
 
-const TMDB_KEY = import.meta.env.VITE_TMDB_API_KEY as string | undefined;
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const norm = (s: string) => s.trim().toLowerCase();
 const uniq = <T,>(arr: T[]) => Array.from(new Set(arr));
