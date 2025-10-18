@@ -23,6 +23,7 @@ const App: React.FC = () => {
   const [sortAsc, setSortAsc] = useState(true);
   const [sortMode, setSortMode] = useState<SortKey>("alpha");
   const [tagText, setTagText] = useState("");
+  const [pressedId, setPressedId] = useState<number | null>(null);
 
   type TagType = "genre" | "flavor" | "keyword" | "cast" | "crew" | "search" | "tagText";
 
@@ -216,6 +217,21 @@ const App: React.FC = () => {
   }, [anyDropdownOpen]);
 
   const allSelectedTags =  [...selectedGenres, ...selectedFlavors, ...selectedKeywords, ...selectedCast, ...selectedCast, term, tagText]
+
+  const pressOpen = (m: Movie) => {
+  // tiny delay lets the pressed style be seen before the modal mounts
+  setTimeout(() => setOpenMovie(m), 100);
+};
+
+  const onDown = (id: number) => setPressedId(id);
+const onUp = (m: Movie) => { setPressedId(null); pressOpen(m); };
+const onCancel = () => setPressedId(null);
+
+useEffect(() => {
+  const noop = () => {};
+  window.addEventListener("touchstart", noop, { passive: true });
+  return () => window.removeEventListener("touchstart", noop);
+}, []);
   
 
   return (
@@ -362,7 +378,22 @@ const App: React.FC = () => {
           {visible.length === 0 && <div className="ml-loading"></div>}
           {!loading &&
             visible.map((m) => (
-              <article key={m.tmdbID} className="ml-card" onClick={() => setOpenMovie(m)}>
+              <article
+  key={m.tmdbID}
+  className={`ml-card ${pressedId === m.tmdbID ? "is-active" : ""}`}
+  role="button"
+  tabIndex={0}
+  onPointerDown={() => onDown(m.tmdbID)}
+  onPointerUp={() => onUp(m)}
+  onPointerCancel={onCancel}
+  onPointerLeave={onCancel}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      pressOpen(m);
+    }
+  }}
+>
                 <div className="ml-card__posterWrap">
                   {m.posterUrl ? (
                     <img className="ml-card__poster" src={m.posterUrl} alt={m.title} />
