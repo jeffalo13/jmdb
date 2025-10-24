@@ -18,6 +18,7 @@
 //     export const ALL_SIGNALS: readonly Signal[] = [...];
 //     export type Signal = typeof ALL_SIGNALS[number];
 
+import { input } from "framer-motion/client";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -356,8 +357,10 @@ const P: SignalPattern[] = [
 ];
 
 // ---------- Build pipeline ----------
-const INPUT = path.resolve(process.cwd(), "keywordIndex.json");
-const OUT   = path.resolve(process.cwd(), "keywordIndex.generated.ts");
+const INPUT = path.resolve(process.cwd(), "./scripts/keywordIndex.json");
+console.log(INPUT);
+const OUT   = path.resolve(process.cwd(), "./scripts/keywordIndex.generated.ts");
+console.log(OUT);
 
 if (!fs.existsSync(INPUT)) {
   console.error(`ERROR: Cannot find ${INPUT}. Place your big keyword file there (array of {name}).`);

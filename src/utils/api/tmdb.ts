@@ -1,5 +1,6 @@
 import type { Movie } from "../../types/movie";
-import { getFlavorsForKeywords } from "../../data/flavorMappingsOG";
+// import { getFlavorsForKeywords } from "../../data/flavorMappingsOG";
+import { getFlavorsForGenresAndKeywords } from "../../data/flavorMappings";
 
 type TmdbImageSize = "w92" | "w154" | "w185" | "w342" | "w500" | "w780" | "original";
 
@@ -50,7 +51,9 @@ export async function tmdbGetMovieByImdbId(tmdbID: number, signal?: AbortSignal)
       .filter(Boolean)
       .map((s: string) => norm(s));
 
-    const flavors: string[] = getFlavorsForKeywords(rawKeywords);
+    const genres: string[] = (d?.genres ?? []).map((g: { name?: string }) => g?.name).filter(Boolean) as string[];
+    
+    const flavors: string[] = getFlavorsForGenresAndKeywords(genres, rawKeywords);
 
     const importantCrew = ["Director"];
     const crew = ((d?.credits?.crew ?? []) as any[])
@@ -61,7 +64,7 @@ export async function tmdbGetMovieByImdbId(tmdbID: number, signal?: AbortSignal)
       tmdbID: d?.id,
       title: d?.title ?? tmdbID,
       year: d?.release_date ? Number(String(d.release_date).slice(0, 4)) : NaN,
-      genres: (d?.genres ?? []).map((g: { name?: string }) => g?.name).filter(Boolean) as string[],
+      genres: genres,
       keywords: uniq(rawKeywords),
       flavors: uniq(flavors),
       actors: (d?.credits?.cast ?? []).slice(0, 10).map((c: { name?: string }) => c?.name).filter(Boolean) as string[],

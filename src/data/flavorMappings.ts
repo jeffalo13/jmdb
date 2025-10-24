@@ -1,7 +1,7 @@
 // flavorMappings.ts — runtime engine (genres + keywords -> flavors)
 // ------------------------------------------------------------
 
-import { KEYWORD_TO_SIGNALS, type Signal } from "./keywordIndex.generated";
+import { KEYWORD_TO_SIGNALS, type Signal } from "../../scripts/keywordIndex.generated";
 
 // ---- Genres (fixed) ----
 export type Genre =

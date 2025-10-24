@@ -1,8 +1,10 @@
 {
   "compilerOptions": {
-    "target": "ES2019",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "target": "ES2020",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "rootDir": "scripts",
+    "outDir": "scripts-dist",
     "types": ["node"],
     "esModuleInterop": true,
     "strict": true,

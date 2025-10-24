@@ -1,1 +1,1 @@
-read from cache if moviesIDs match what movies are in cache
+clkcik on computer on dropdown not registering second click
