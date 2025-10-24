@@ -1,369 +1,375 @@
-// buildFlavorMap.ts
-// ------------------------------------------------------------
-// Build step: reads ./keywordIndex.json and emits ./keywordIndex.generated.ts
-// - Normalizes/aliases the ~70k keyword names
-// - Assigns them to "signals" via exact + regex rules
-// - Outputs a compact, treeshakeable TS module for runtime use
-//
-// Usage:
-//   npm i -D ts-node
-//   npx ts-node buildFlavorMap.ts
-//
-// Input shape (keywordIndex.json):
-//   [{ "name": "vampires" }, { "name": "time travel" }, ...]
-//
-// Output:
-//   ./keywordIndex.generated.ts
-//     export const KEYWORD_TO_SIGNALS: Record<string, Signal[]> = { ... };
-//     export const ALL_SIGNALS: readonly Signal[] = [...];
-//     export type Signal = typeof ALL_SIGNALS[number];
+// scripts/buildFlavorMap.ts  (ESM-friendly; compiled with NodeNext)
+// Goal: read ./keywordIndex.json (array of {name} or strings) and emit
+//       ./src/data/keywordIndex.generated.ts with an exhaustive KEYWORD_TO_SIGNALS map.
+// Also writes coverage + unmatched JSON for auditing.
 import * as fs from "fs";
 import * as path from "path";
-// ---------- Helpers ----------
-const normalize = (s) => s.trim()
+// ---------- Paths ----------
+const INPUT = path.resolve(process.cwd(), "./scripts/keywordIndex.json");
+const OUT = path.resolve(process.cwd(), "./scripts/keywordIndex.generated.ts");
+const REPORT_DIR = path.resolve(process.cwd(), "scripts-dist");
+// ---------- Utils ----------
+const ensureDir = (p) => fs.mkdirSync(p, { recursive: true });
+const normalize = (s) => s
+    .trim()
     .toLowerCase()
     .replace(/[’']/g, "'")
     .replace(/[\u2013\u2014]/g, "-")
+    .replace(/_/g, " ")
     .replace(/\s+/g, " ");
 const ALIASES = {
-    "ai": "artificial intelligence",
-    "a.i.": "artificial intelligence",
-    "neo noir": "neo-noir",
     "sci fi": "science fiction",
     "sci-fi": "science fiction",
+    "neo noir": "neo-noir",
     "hand drawn": "hand-drawn",
     "one man army": "one-man army",
-    "gun-fu": "gun fu",
-    "serial-killer": "serial killer",
-    "body-swap": "body swap",
-    "vr": "virtual reality",
     "docu series": "docuseries",
+    "vr": "virtual reality",
+    "ai": "artificial intelligence",
+    "a.i.": "artificial intelligence",
 };
-function canonKeyword(raw) {
+function canon(raw) {
     const n = normalize(raw);
     return ALIASES[n] ?? n;
 }
-// A light stoplist to ignore extremely low-signal tokens.
-// (Keep this conservative; expand later if needed.)
-const STOPWORDS = new Set([
-    "",
-    "a", "an", "the",
-    "new york", "los angeles", "london", "paris", "tokyo", "berlin", "rome",
-    "washington", "california", "texas", "florida", "ohio", "toronto",
-    "monday", "tuesday", "wednesday", "thursday", "friday",
-    "saturday", "sunday",
-    "red", "blue", "green", "yellow", "black", "white",
-    "man", "woman", "boy", "girl", "people", "person",
-]);
-// Utility: wraps pattern string into a word-boundary regex unless you set raw=true
-const re = (pat, flags = "i", raw = false) => new RegExp(raw ? pat : `(?:^|\\b)${pat}(?:\\b|$)`, flags);
-// Define signals by families (add freely — total can be ~150–200).
-// Keep names noun-ish/verb-noun-ish and singular if possible.
-const SIGNALS_BY_FAMILY = {
-    horror: [
-        "vampire", "werewolf", "zombie", "haunted house", "ghost", "possession", "exorcism",
-        "witch", "witchcraft", "demon", "monster", "slasher", "serial killer", "found footage",
-        "occult", "satanic", "curse", "poltergeist", "final girl", "body horror", "folk horror",
-    ],
-    scifi: [
-        "cyberpunk", "time travel", "time loop", "parallel universe", "multiverse",
-        "space opera", "spaceship", "robot", "android", "cyborg", "artificial intelligence",
-        "clone", "kaiju", "dystopia", "post-apocalyptic", "black hole", "wormhole", "hyperspace",
-        "mecha", "steampunk", "virtual reality",
-    ],
-    crime_action: [
-        "heist", "robbery", "mafia", "gangster", "yakuza", "triad", "cartel", "hitman", "assassin",
-        "vigilante", "undercover", "cia", "mi6", "spy", "espionage", "hostage", "car chase", "gun fu",
-        "police", "homicide", "forensics", "interrogation", "bounty hunter", "stunt driver",
-        "one-man army",
-    ],
-    fantasy: [
-        "wizard", "sorcerer", "dragon", "elf", "dwarf", "orc", "prophecy", "chosen one",
-        "magic", "spell", "mythology", "pantheon", "sword", "barbarian", "fae", "faerie", "goblin",
-        "wuxia", "samurai", "sword & sandal", "sword and sandal", "sword and sorcery", "sword & sorcery",
-    ],
-    thriller: [
-        "conspiracy", "cover-up", "whistleblower", "amnesia", "gaslighting", "identity", "stalker",
-        "ticking clock", "siege", "bomb", "ransom", "kidnapping", "erotic", "serial stalking",
-    ],
-    drama_themes: [
-        "biopic", "biography", "based on true story", "courtroom", "trial", "jury",
-        "ptsd", "addiction", "alcoholism", "grief", "widow", "workplace", "coming-of-age",
-        "financial crisis", "prison", "parole", "warden", "political scandal", "lobbyist",
-    ],
-    adventure: [
-        "treasure map", "lost city", "expedition", "jungle", "desert", "mountain", "pirate", "sea voyage",
-        "mutiny", "privateer", "artifact", "road trip", "quest", "globe-trotting", "swashbuckler",
-    ],
-    documentary: [
-        "true crime", "interview", "archival footage", "docuseries", "investigation", "narration",
-        "oral history", "biography",
-    ],
-    romance_comedy: [
-        "meet-cute", "enemies to lovers", "fake dating", "friends to lovers", "holiday romance",
-        "steamy", "teen romance", "rom-com", "screwball", "parody", "spoof", "mockumentary", "satire",
-        "farce", "raunchy", "stoner", "sketch", "stand-up", "buddy comedy", "buddy cop", "quirky",
-        "high-concept",
-    ],
-    music_musical: [
-        "musical", "song-and-dance", "jukebox musical", "studio session", "tour", "concert",
-        "audition", "composer",
-    ],
-    mystery_detective: [
-        "whodunnit", "closed circle", "country manor", "cozy mystery", "amateur sleuth",
-        "private eye", "gumshoe", "hard-boiled",
-    ],
-    setting_tokens: [
-        "space", "spaceship", "sea", "ocean", "jungle", "desert", "mountain", "rural", "urban",
-        "ancient world", "futuristic city", "war zone", "fantasy world",
-    ],
-};
-// Flatten for type-safety in the generated file:
-const ALL_SIGNALS = Array.from(new Set(Object.values(SIGNALS_BY_FAMILY).flat())).sort();
-const P = [
-    // Horror
-    { signal: "vampire", patterns: [re("vampir(?:e|ic|ism|es)")] },
-    { signal: "werewolf", patterns: [re("werewolf|lycan(?:thrope|thropy)")] },
-    { signal: "zombie", patterns: [re("zombie|undead|walker")] },
-    { signal: "haunted house", patterns: [re("haunted house|haunted hotel|haunted (?:mansion|manor)")] },
-    { signal: "ghost", patterns: [re("ghost|poltergeist|specter|spirit")] },
-    { signal: "possession", patterns: [re("possession|possessed")] },
-    { signal: "exorcism", patterns: [re("exorcis(?:m|t|ts)")] },
-    { signal: "witch", patterns: [re("witch(?:es)?\\b")] },
-    { signal: "witchcraft", patterns: [re("witchcraft|coven")] },
-    { signal: "demon", patterns: [re("demon|demonic|hellspawn|devil worship")] },
-    { signal: "monster", patterns: [re("monster|creature|beast|abomination")] },
-    { signal: "slasher", patterns: [re("slasher|mask(?:ed)? killer|final girl")] },
-    { signal: "serial killer", patterns: [re("serial killer|serial-killer|profil(?:e|ing)")] },
-    { signal: "found footage", patterns: [re("found footage|camcorder|handheld tape")] },
-    { signal: "occult", patterns: [re("occult|arcana|ritual|summoning")] },
-    { signal: "satanic", patterns: [re("satanic|satanism")] },
-    { signal: "curse", patterns: [re("curse|cursed")] },
-    { signal: "final girl", patterns: [re("final girl")] },
-    { signal: "body horror", patterns: [re("body horror|mutation|gore|parasit(?:e|ic)")] },
-    { signal: "folk horror", patterns: [re("folk horror|pagan rite|harvest ritual")] },
-    // Sci-Fi
-    { signal: "cyberpunk", patterns: [re("cyberpunk|neon city|megacorp")] },
-    { signal: "time travel", patterns: [re("time travel|temporal (?:loop|paradox)|timeline")] },
-    { signal: "time loop", patterns: [re("time loop|groundhog day")] },
-    { signal: "parallel universe", patterns: [re("parallel universe|alternate timeline")] },
-    { signal: "multiverse", patterns: [re("multiverse")] },
-    { signal: "space opera", patterns: [re("space opera|galactic war|hyperspace")] },
-    { signal: "spaceship", patterns: [re("spaceship|starship|spacecraft")] },
-    { signal: "robot", patterns: [re("robot|automat(?:a|on)")] },
-    { signal: "android", patterns: [re("android|replicant")] },
-    { signal: "cyborg", patterns: [re("cyborg")] },
-    { signal: "artificial intelligence", patterns: [re("artificial intelligence|sentient ai|supercomputer|ai rebellion")] },
-    { signal: "clone", patterns: [re("clone|cloning")] },
-    { signal: "kaiju", patterns: [re("kaiju|giant monster")] },
-    { signal: "dystopia", patterns: [re("dystopia|police state|surveillance state")] },
-    { signal: "post-apocalyptic", patterns: [re("post[- ]?apocalyptic|wasteland|nuclear winter")] },
-    { signal: "black hole", patterns: [re("black hole")] },
-    { signal: "wormhole", patterns: [re("wormhole")] },
-    { signal: "hyperspace", patterns: [re("hyperspace")] },
-    { signal: "mecha", patterns: [re("mecha|giant robot suit|pilot suit")] },
-    { signal: "steampunk", patterns: [re("steampunk|clockwork")] },
-    { signal: "virtual reality", patterns: [re("virtual reality|vr|simulated world|metaverse")] },
-    // Crime/Action
-    { signal: "heist", patterns: [re("heist|vault job|bank job")] },
-    { signal: "robbery", patterns: [re("robbery|armed robbery")] },
-    { signal: "mafia", patterns: [re("mafia|capo|cosa nostra")] },
-    { signal: "gangster", patterns: [re("gangster|gangland")] },
-    { signal: "yakuza", patterns: [re("yakuza")] },
-    { signal: "triad", patterns: [re("triad")] },
-    { signal: "cartel", patterns: [re("cartel")] },
-    { signal: "hitman", patterns: [re("hitman|contract killer")] },
-    { signal: "assassin", patterns: [re("assassin|assassination")] },
-    { signal: "vigilante", patterns: [re("vigilante|vigilantism|takes the law")] },
-    { signal: "undercover", patterns: [re("undercover|deep cover")] },
-    { signal: "cia", patterns: [re("\\bcia\\b")] },
-    { signal: "mi6", patterns: [re("\\bmi6\\b")] },
-    { signal: "spy", patterns: [re("spy|spymaster|dead drop|handler")] },
-    { signal: "espionage", patterns: [re("espionage")] },
-    { signal: "hostage", patterns: [re("hostage|hostage rescue")] },
-    { signal: "car chase", patterns: [re("car chase|street race|pursuit")] },
-    { signal: "gun fu", patterns: [re("gun fu|gun kata|balletic violence|double pistols")] },
-    { signal: "police", patterns: [re("police|precinct|patrol|beat cop")] },
-    { signal: "homicide", patterns: [re("homicide unit|major crimes")] },
-    { signal: "forensics", patterns: [re("forensics|lab tech")] },
-    { signal: "interrogation", patterns: [re("interrogation|interrogation room")] },
-    { signal: "bounty hunter", patterns: [re("bounty hunter")] },
-    { signal: "stunt driver", patterns: [re("stunt driver|wheelman")] },
-    { signal: "one-man army", patterns: [re("one[- ]?man army|single operative|lone wolf")] },
-    // Fantasy
-    { signal: "wizard", patterns: [re("wizard|warlock|mage|magus")] },
-    { signal: "sorcerer", patterns: [re("sorcerer|sorceress")] },
-    { signal: "dragon", patterns: [re("dragon|wyrm")] },
-    { signal: "elf", patterns: [re("elf|elven")] },
-    { signal: "dwarf", patterns: [re("dwarf|dwarven")] },
-    { signal: "orc", patterns: [re("orc|orcs")] },
-    { signal: "prophecy", patterns: [re("prophecy|prophetic")] },
-    { signal: "chosen one", patterns: [re("chosen one")] },
-    { signal: "magic", patterns: [re("magic|magical|sorcery|wizardry")] },
-    { signal: "spell", patterns: [re("spell|incantation")] },
-    { signal: "mythology", patterns: [re("mythology|mythic|pantheon|deity")] },
-    { signal: "pantheon", patterns: [re("pantheon")] },
-    { signal: "sword", patterns: [re("sword|blade|katana")] },
-    { signal: "barbarian", patterns: [re("barbarian")] },
-    { signal: "fae", patterns: [re("\\bfae\\b")] },
-    { signal: "faerie", patterns: [re("faerie|fairy|fairies")] },
-    { signal: "goblin", patterns: [re("goblin|goblins")] },
-    { signal: "wuxia", patterns: [re("wuxia|jianghu")] },
-    { signal: "samurai", patterns: [re("samurai|ronin|bushido|shogun")] },
-    { signal: "sword & sandal", patterns: [re("sword (?:&|and) sandal|gladiator|colosseum|arena combat|legion|centurion")] },
-    { signal: "sword & sorcery", patterns: [re("sword (?:&|and) sorcery")] },
-    // Thriller
-    { signal: "conspiracy", patterns: [re("conspiracy|cover-up|coverup")] },
-    { signal: "whistleblower", patterns: [re("whistleblower")] },
-    { signal: "amnesia", patterns: [re("amnesia|amnesiac")] },
-    { signal: "gaslighting", patterns: [re("gaslighting|gaslight")] },
-    { signal: "identity", patterns: [re("identity|double life")] },
-    { signal: "stalker", patterns: [re("stalker|stalking")] },
-    { signal: "ticking clock", patterns: [re("ticking clock|race against time")] },
-    { signal: "siege", patterns: [re("siege|barricade")] },
-    { signal: "bomb", patterns: [re("bomb|time bomb|explosive device")] },
-    { signal: "ransom", patterns: [re("ransom|ransom note|ransomware")] },
-    { signal: "kidnapping", patterns: [re("kidnap|kidnapping|abduction")] },
-    { signal: "erotic", patterns: [re("erotic|seduction|fatal attraction")] },
-    // Drama / themes
-    { signal: "biopic", patterns: [re("biopic|biographical film|biography")] },
-    { signal: "based on true story", patterns: [re("based on true story|true story")] },
-    { signal: "courtroom", patterns: [re("courtroom|trial|jury|prosecution|defense attorney")] },
-    { signal: "ptsd", patterns: [re("\\bptsd\\b|shell shock")] },
-    { signal: "addiction", patterns: [re("addiction|alcoholism|self-destruction")] },
-    { signal: "grief", patterns: [re("grief|mourning|widow|bereaved")] },
-    { signal: "workplace", patterns: [re("workplace|office politics|downsizing|promotion")] },
-    { signal: "coming-of-age", patterns: [re("coming[- ]of[- ]age|rite of passage")] },
-    { signal: "financial crisis", patterns: [re("financial crisis|crash|short squeeze|wall street")] },
-    { signal: "prison", patterns: [re("prison|incarceration|parole|warden")] },
-    { signal: "political scandal", patterns: [re("scandal|corruption|lobbyist")] },
-    // Adventure
-    { signal: "treasure map", patterns: [re("treasure map")] },
-    { signal: "lost city", patterns: [re("lost city|el dorado|atlantis")] },
-    { signal: "expedition", patterns: [re("expedition|explor(?:e|ation)")] },
-    { signal: "jungle", patterns: [re("jungle|rainforest")] },
-    { signal: "desert", patterns: [re("desert|oasis|dune|caravan")] },
-    { signal: "mountain", patterns: [re("mountain|summit|alpine|avalanche")] },
-    { signal: "pirate", patterns: [re("pirate|buccaneer|privateer")] },
-    { signal: "sea voyage", patterns: [re("sea voyage|voyage at sea|ocean crossing")] },
-    { signal: "mutiny", patterns: [re("mutiny")] },
-    { signal: "artifact", patterns: [re("artifact|relic")] },
-    { signal: "road trip", patterns: [re("road trip|cross[- ]country")] },
-    { signal: "quest", patterns: [re("\\bquest\\b|chosen one|prophecy")] },
-    { signal: "globe-trotting", patterns: [re("globe[- ]trott(?:er|ing)")] },
-    { signal: "swashbuckler", patterns: [re("swashbuckler|rapier duel")] },
-    // Documentary
-    { signal: "true crime", patterns: [re("true crime|crime documentary")] },
-    { signal: "interview", patterns: [re("interview|sit-down interview|talking heads")] },
-    { signal: "archival footage", patterns: [re("archival footage|archive footage")] },
-    { signal: "docuseries", patterns: [re("docuseries|docu-series")] },
-    { signal: "investigation", patterns: [re("investigation|investigative report")] },
-    { signal: "narration", patterns: [re("narration|voice-over|voiceover")] },
-    { signal: "oral history", patterns: [re("oral history")] },
-    // Romance/Comedy
-    { signal: "meet-cute", patterns: [re("meet[- ]cute")] },
-    { signal: "enemies to lovers", patterns: [re("enemies to lovers")] },
-    { signal: "fake dating", patterns: [re("fake dating|pretend dating")] },
-    { signal: "friends to lovers", patterns: [re("friends to lovers")] },
-    { signal: "holiday romance", patterns: [re("holiday romance|christmas romance|seasonal romance")] },
-    { signal: "steamy", patterns: [re("steamy|spicy")] },
-    { signal: "teen romance", patterns: [re("teen romance|high school romance")] },
-    { signal: "rom-com", patterns: [re("rom[- ]?com|romantic comedy")] },
-    { signal: "screwball", patterns: [re("screwball")] },
-    { signal: "parody", patterns: [re("parody|spoof")] },
-    { signal: "spoof", patterns: [re("spoof")] },
-    { signal: "mockumentary", patterns: [re("mockumentary|fake documentary")] },
-    { signal: "satire", patterns: [re("satire|satirical")] },
-    { signal: "farce", patterns: [re("farce|bedroom farce|doors slamming")] },
-    { signal: "raunchy", patterns: [re("raunchy|gross-out|sex comedy")] },
-    { signal: "stoner", patterns: [re("stoner|weed comedy|cannabis")] },
-    { signal: "sketch", patterns: [re("sketch comedy|sketches")] },
-    { signal: "stand-up", patterns: [re("stand[- ]?up")] },
-    { signal: "buddy comedy", patterns: [re("buddy comedy")] },
-    { signal: "buddy cop", patterns: [re("buddy cop")] },
-    { signal: "quirky", patterns: [re("quirky|offbeat|deadpan")] },
-    { signal: "high-concept", patterns: [re("high[- ]concept")] },
-    // Music/Musical
-    { signal: "musical", patterns: [re("musical|song[- ]and[- ]dance|show tune")] },
-    { signal: "jukebox musical", patterns: [re("jukebox musical|catalog songs")] },
-    { signal: "studio session", patterns: [re("studio session|recording studio")] },
-    { signal: "tour", patterns: [re("tour|world tour")] },
-    { signal: "concert", patterns: [re("concert|live performance")] },
-    { signal: "audition", patterns: [re("audition")] },
-    { signal: "composer", patterns: [re("composer|composition")] },
-    // Mystery/Detective
-    { signal: "whodunnit", patterns: [re("whodunnit|who dunnit|who done it")] },
-    { signal: "closed circle", patterns: [re("closed circle")] },
-    { signal: "country manor", patterns: [re("country manor|country house")] },
-    { signal: "cozy mystery", patterns: [re("cozy mystery")] },
-    { signal: "amateur sleuth", patterns: [re("amateur sleuth|amateur detective")] },
-    { signal: "private eye", patterns: [re("private eye|private investigator|pi\\b")] },
-    { signal: "gumshoe", patterns: [re("gumshoe")] },
-    { signal: "hard-boiled", patterns: [re("hard[- ]boiled")] },
-    // Settings (multimap to setting-driven flavors later)
-    { signal: "space", patterns: [re("space\\b|outer space"), re("spaceship|starship|spacecraft")] },
-    { signal: "sea", patterns: [re("\\bsea\\b|ocean|naval|pirate|privateer")] },
-    { signal: "jungle", patterns: [re("jungle|rainforest")] },
-    { signal: "desert", patterns: [re("desert|dune|oasis|caravan")] },
-    { signal: "mountain", patterns: [re("mountain|alpine|summit|avalanche")] },
-    { signal: "rural", patterns: [re("rural|countryside|farm town")] },
-    { signal: "urban", patterns: [re("urban|inner city|downtown")] },
-    { signal: "ancient world", patterns: [re("ancient world|pharaoh|rome|greece|sparta|pyramids")] },
-    { signal: "futuristic city", patterns: [re("futuristic city|arcology|neon city")] },
-    { signal: "war zone", patterns: [re("war zone|front line|occupied city")] },
-    { signal: "fantasy world", patterns: [re("fantasy world|fae realm|otherworldly kingdom")] },
+// expand a seed phrase into common variants (plural, hyphen/space, etc.)
+function* expand(seed) {
+    const base = canon(seed);
+    yield base;
+    // hyphen/space toggles
+    if (base.includes("-"))
+        yield base.replace(/-/g, " ");
+    if (base.includes(" "))
+        yield base.replace(/ /g, "-");
+    // simple plurals (best-effort)
+    if (!/\b(of|and|to|the|a|an)\b/.test(base)) {
+        if (/\b\w+$/.test(base)) {
+            yield base.replace(/\b([a-z]{3,})\b$/i, "$1s");
+            yield base.replace(/\b([a-z]{3,})\b$/i, "$1es");
+            yield base.replace(/\b([a-z]{3,})y\b$/i, "$1ies");
+            yield base.replace(/\b([a-z]{3,})man\b$/i, "$1men");
+        }
+    }
+    // common prefixes/suffix variants
+    yield base.replace(/\bon the run\b/g, "on-the-run");
+    yield base.replace(/\bsuper max\b/g, "supermax");
+}
+// fast regex helper – word boundaries
+const re = (pat, flags = "i") => new RegExp(`(?:^|\\b)${pat}(?:\\b|$)`, flags);
+// Big, genre-spanning seed tables. (We’re adding a lot; you can keep growing these.)
+// Each entry auto-expands dozens of variants, so total matches end up in the thousands.
+// === ACTION ===
+const ACTION_SEEDS = [
+    { signal: "bounty hunter", phrases: ["bounty hunter", "bounty", "hunter for hire"], genres: ["action", "thriller", "science fiction", "western"] },
+    { signal: "manhunt", phrases: ["manhunt", "fugitive", "on the run", "escaped convict", "prison escape", "super max prison"], genres: ["action", "thriller", "crime", "drama", "science fiction"] },
+    { signal: "rescue mission", phrases: ["rescue mission", "hostage rescue", "extraction mission", "exfiltration"], genres: ["action", "thriller"] },
+    { signal: "siege", phrases: ["siege", "siege warfare", "compound assault", "breach", "barricade"], genres: ["action", "thriller", "war", "western"] },
+    { signal: "infiltration", phrases: ["infiltration", "deep cover", "black ops", "covert op"], genres: ["action", "thriller"] },
+    { signal: "mercenary", phrases: ["mercenary", "pmc", "soldier of fortune"], genres: ["action", "thriller", "war"] },
+    { signal: "special forces", phrases: ["special forces", "spec ops", "delta force", "navy seals", "rangers"], genres: ["action", "war", "thriller"] },
+    { signal: "sniper", phrases: ["sniper", "sharpshooter", "marksman"], genres: ["action", "thriller", "war"] },
+    { signal: "hand-to-hand", phrases: ["hand-to-hand", "close quarters", "cqc", "cqb", "fistfight", "brawl"], genres: ["action", "thriller"] },
+    { signal: "gunfight", phrases: ["gunfight", "shootout", "firefight", "crossfire", "double tap"], genres: ["action", "thriller", "crime", "western"] },
+    { signal: "car chase", phrases: ["car chase", "high-speed pursuit", "vehicle pursuit", "motorcycle chase", "foot chase", "run and gun"], genres: ["action", "thriller"] },
+    { signal: "explosives", phrases: ["explosive", "detonator", "c4", "semtex", "improvised explosive", "ied"], genres: ["action", "thriller", "war", "crime"] },
+    { signal: "one-man army", phrases: ["one-man army", "lone wolf operative", "unstoppable hero"], genres: ["action", "thriller"] },
+    { signal: "revenge", phrases: ["revenge", "vengeance", "payback", "retribution"], genres: ["action", "thriller", "drama"] },
+    { signal: "heist", phrases: ["heist", "bank job", "vault", "safecracker", "diamond heist", "art theft", "casino job"], genres: ["crime", "action", "thriller"] },
+    { signal: "prison", phrases: ["prison", "penitentiary", "supermax", "warden", "lockdown"], genres: ["crime", "drama", "thriller", "action"] },
+    { signal: "martial arts", phrases: ["martial arts", "kung fu", "karate", "taekwondo", "muay thai", "dojo"], genres: ["action"] },
+    { signal: "samurai", phrases: ["samurai", "ronin", "bushido", "shogun"], genres: ["action", "drama", "history"] },
+    { signal: "ninja", phrases: ["ninja", "shinobi"], genres: ["action"] },
+    { signal: "parkour", phrases: ["parkour", "free running"], genres: ["action"] },
+    { signal: "stunt driving", phrases: ["stunt driver", "stunt driving", "precision driving"], genres: ["action"] },
 ];
-// ---------- Build pipeline ----------
-const INPUT = path.resolve(process.cwd(), "./scripts/keywordIndex.json");
-console.log(INPUT);
-const OUT = path.resolve(process.cwd(), "./scripts/keywordIndex.generated.ts");
-console.log(OUT);
+// === THRILLER ===
+const THRILLER_SEEDS = [
+    { signal: "conspiracy", phrases: ["conspiracy", "cover-up", "shadowy cabal", "secret organization", "deep state"], genres: ["thriller"] },
+    { signal: "political intrigue", phrases: ["political intrigue", "government scandal", "corruption", "coup"], genres: ["thriller", "drama"] },
+    { signal: "espionage", phrases: ["spy", "spycraft", "espionage", "cia", "mi6", "kgb", "mossad", "interpol"], genres: ["thriller", "action"] },
+    { signal: "hacker/cyber", phrases: ["hacker", "hacking", "cyber attack", "malware", "ransomware", "surveillance state"], genres: ["thriller", "science fiction", "crime"] },
+    { signal: "hostage", phrases: ["hostage", "kidnapping", "ransom"], genres: ["thriller", "action", "crime"] },
+    { signal: "ticking clock", phrases: ["ticking clock", "bomb", "time bomb", "countdown", "deadline"], genres: ["thriller", "action"] },
+    { signal: "stalker", phrases: ["stalker", "obsession", "fixation", "watching you"], genres: ["thriller"] },
+    { signal: "serial killer", phrases: ["serial killer", "profiling", "manhunter"], genres: ["thriller", "crime", "horror"] },
+    { signal: "amnesia/identity", phrases: ["amnesia", "memory loss", "double life", "false identity"], genres: ["thriller", "drama"] },
+    { signal: "erotic", phrases: ["erotic thriller", "seduction", "deadly affair"], genres: ["thriller", "romance"] },
+];
+// === SCIENCE FICTION ===
+const SCIFI_SEEDS = [
+    { signal: "dystopia", phrases: ["dystopia", "dystopian future", "oppressive regime", "totalitarian"], genres: ["science fiction"] },
+    { signal: "post-apocalyptic", phrases: ["post-apocalyptic", "wasteland", "after the bomb", "nuclear winter"], genres: ["science fiction", "action"] },
+    { signal: "space travel", phrases: ["space travel", "astronaut", "intergalactic travel", "hyperspace", "wormhole"], genres: ["science fiction", "adventure"] },
+    { signal: "space opera", phrases: ["space opera", "galactic empire", "space war", "interstellar conflict"], genres: ["science fiction", "action", "adventure"] },
+    { signal: "alien contact", phrases: ["alien contact", "alien race", "first contact", "extraterrestrial"], genres: ["science fiction"] },
+    { signal: "alien invasion", phrases: ["alien invasion", "planet invasion", "invasion from space"], genres: ["science fiction", "action"] },
+    { signal: "cyberpunk", phrases: ["cyberpunk", "megacorporation", "augmented reality", "neon city", "future noir"], genres: ["science fiction", "thriller"] },
+    { signal: "time travel", phrases: ["time travel", "time loop", "temporal paradox"], genres: ["science fiction"] },
+    { signal: "artificial intelligence", phrases: ["artificial intelligence", "super computer", "ai rebellion", "android", "cyborg", "robot uprising"], genres: ["science fiction", "thriller"] },
+    { signal: "multiverse", phrases: ["multiverse", "parallel universe", "alternate timeline"], genres: ["science fiction"] },
+    { signal: "x-ray vision", phrases: ["x-ray vision"], genres: ["science fiction", "action"] },
+];
+// === FANTASY ===
+const FANTASY_SEEDS = [
+    { signal: "high fantasy", phrases: ["high fantasy", "sword and sorcery", "sword & sorcery", "barbarian", "wizard", "dragon", "elf", "orc", "prophecy", "chosen one"], genres: ["fantasy", "adventure"] },
+    { signal: "dark fantasy", phrases: ["dark fantasy", "ancient evil", "demonic realm"], genres: ["fantasy", "horror"] },
+    { signal: "urban fantasy", phrases: ["urban fantasy", "hidden magical world"], genres: ["fantasy"] },
+    { signal: "mythic", phrases: ["mythology", "pantheon", "gods", "demigod"], genres: ["fantasy", "history"] },
+    { signal: "wuxia", phrases: ["wuxia", "jianghu", "martial world"], genres: ["fantasy", "action"] },
+    { signal: "sword & sandal", phrases: ["sword & sandal", "sword and sandal", "gladiator"], genres: ["fantasy", "history", "action"] },
+];
+// === HORROR ===
+const HORROR_SEEDS = [
+    { signal: "supernatural", phrases: ["ghost", "haunting", "poltergeist", "haunted house", "haunted hotel"], genres: ["horror"] },
+    { signal: "possession", phrases: ["possession", "exorcism", "demonic"], genres: ["horror"] },
+    { signal: "occult", phrases: ["occult", "witch", "witchcraft", "coven", "satanic"], genres: ["horror"] },
+    { signal: "slasher", phrases: ["slasher", "masked killer", "final girl"], genres: ["horror", "thriller"] },
+    { signal: "body horror", phrases: ["body horror", "mutation", "parasite", "grotesque"], genres: ["horror"] },
+    { signal: "zombie", phrases: ["zombie", "undead", "walker"], genres: ["horror"] },
+    { signal: "vampire", phrases: ["vampire", "bloodsucker"], genres: ["horror", "fantasy"] },
+    { signal: "werewolf", phrases: ["werewolf", "lycanthrope"], genres: ["horror", "fantasy"] },
+    { signal: "folk horror", phrases: ["folk horror", "pagan ritual", "harvest rite"], genres: ["horror"] },
+    { signal: "found footage", phrases: ["found footage", "tape found", "camcorder"], genres: ["horror"] },
+];
+// === CRIME / MYSTERY ===
+const CRIME_MYSTERY_SEEDS = [
+    { signal: "film noir", phrases: ["film noir", "noir detective", "femme fatale"], genres: ["crime", "drama", "thriller"] },
+    { signal: "neo-noir", phrases: ["neo-noir", "modern noir", "future noir"], genres: ["crime", "thriller", "science fiction"] },
+    { signal: "police procedural", phrases: ["police procedural", "forensics", "homicide unit"], genres: ["crime", "drama"] },
+    { signal: "heist", phrases: ["heist", "caper", "robbery"], genres: ["crime", "action", "thriller"] },
+    { signal: "gangster", phrases: ["gangster", "mafia", "yakuza", "triad", "cartel"], genres: ["crime", "drama", "action"] },
+    { signal: "detective mystery", phrases: ["whodunnit", "whodunit", "detective", "private eye", "gumshoe", "closed circle"], genres: ["mystery", "crime"] },
+    { signal: "true crime", phrases: ["true crime", "crime documentary", "based on true crime"], genres: ["documentary", "drama", "crime"] },
+    { signal: "prison", phrases: ["prison", "escape", "warden", "parole"], genres: ["crime", "drama", "thriller"] },
+];
+// === ROMANCE / DRAMA ===
+const ROMANCE_DRAMA_SEEDS = [
+    { signal: "rom-com", phrases: ["romantic comedy", "rom com", "meet-cute", "opposites attract", "enemies to lovers", "fake dating"], genres: ["romance", "comedy"] },
+    { signal: "romantic drama", phrases: ["romantic drama", "tragic romance", "star-crossed lovers"], genres: ["romance", "drama"] },
+    { signal: "coming of age", phrases: ["coming of age", "growing up", "rite of passage"], genres: ["drama"] },
+    { signal: "biopic", phrases: ["biopic", "biographical", "based on true story"], genres: ["drama", "music", "documentary"] },
+    { signal: "legal", phrases: ["courtroom", "trial", "appeal", "jury", "prosecutor", "defense attorney"], genres: ["drama", "thriller"] },
+    { signal: "medical", phrases: ["medical drama", "hospital", "surgeon", "er"], genres: ["drama"] },
+    { signal: "workplace", phrases: ["workplace drama", "office politics"], genres: ["drama", "comedy"] },
+    { signal: "family saga", phrases: ["family saga", "generational feud", "patriarch", "matriarch"], genres: ["drama"] },
+    { signal: "grief", phrases: ["grief", "loss", "bereavement"], genres: ["drama"] },
+    { signal: "addiction", phrases: ["addiction", "alcoholism", "self-destruction"], genres: ["drama"] },
+];
+// === COMEDY ===
+const COMEDY_SEEDS = [
+    { signal: "parody/spoof", phrases: ["parody", "spoof"], genres: ["comedy"] },
+    { signal: "satire", phrases: ["satire", "satirical"], genres: ["comedy"] },
+    { signal: "slapstick", phrases: ["slapstick", "pratfall", "physical comedy"], genres: ["comedy"] },
+    { signal: "screwball", phrases: ["screwball", "madcap", "fast-talking"], genres: ["comedy"] },
+    { signal: "farce", phrases: ["farce", "mistaken identity", "door slamming"], genres: ["comedy"] },
+    { signal: "black comedy", phrases: ["black comedy", "dark comedy"], genres: ["comedy"] },
+    { signal: "stoner", phrases: ["stoner", "weed comedy", "pothead"], genres: ["comedy"] },
+    { signal: "mockumentary", phrases: ["mockumentary", "fake documentary"], genres: ["comedy"] },
+    { signal: "teen comedy", phrases: ["teen comedy", "high school hijinks"], genres: ["comedy"] },
+];
+// === DOCUMENTARY ===
+const DOC_SEEDS = [
+    { signal: "docuseries", phrases: ["docuseries"], genres: ["documentary"] },
+    { signal: "nature doc", phrases: ["nature documentary", "wildlife", "animals"], genres: ["documentary"] },
+    { signal: "music doc", phrases: ["music documentary", "concert film", "backstage"], genres: ["documentary", "music"] },
+    { signal: "sports doc", phrases: ["sports documentary", "athlete profile"], genres: ["documentary", "sport"] },
+    { signal: "history doc", phrases: ["history documentary", "archive footage", "oral history"], genres: ["documentary", "history"] },
+    { signal: "true crime doc", phrases: ["true crime documentary", "crime doc"], genres: ["documentary"] },
+    { signal: "political doc", phrases: ["political documentary", "policy documentary"], genres: ["documentary"] },
+];
+// === HISTORY / WAR / WESTERN / ADVENTURE / SPORTS / MUSIC / FAMILY / ANIMATION ===
+const OTHER_SEEDS = [
+    // History / War
+    { signal: "historical epic", phrases: ["historical epic", "period epic", "lavish period"], genres: ["history", "drama"] },
+    { signal: "costume drama", phrases: ["costume drama", "period drama", "regency", "victorian"], genres: ["history", "drama"] },
+    { signal: "war epic", phrases: ["war epic", "massive battle"], genres: ["war", "history"] },
+    { signal: "anti-war", phrases: ["anti-war", "war is hell"], genres: ["war", "drama"] },
+    { signal: "ww1", phrases: ["world war i", "wwi", "trench warfare"], genres: ["war", "history"] },
+    { signal: "ww2", phrases: ["world war ii", "wwii", "nazi", "third reich"], genres: ["war", "history", "drama"] },
+    // Western
+    { signal: "classical western", phrases: ["old west", "gunslinger", "sheriff", "outlaw"], genres: ["western"] },
+    { signal: "spaghetti western", phrases: ["spaghetti western", "italian western"], genres: ["western"] },
+    { signal: "revisionist western", phrases: ["revisionist western", "anti-western"], genres: ["western"] },
+    { signal: "neo-western", phrases: ["neo-western", "modern western"], genres: ["western"] },
+    // Adventure
+    { signal: "treasure/quest", phrases: ["treasure hunt", "quest", "artifact", "lost city", "expedition", "globe-trotting", "swashbuckler", "sea adventure", "jungle adventure", "desert adventure", "mountain adventure", "road trip"], genres: ["adventure"] },
+    // Sports
+    { signal: "baseball", phrases: ["baseball"], genres: ["sport"] },
+    { signal: "basketball", phrases: ["basketball"], genres: ["sport"] },
+    { signal: "football", phrases: ["football"], genres: ["sport"] },
+    { signal: "boxing", phrases: ["boxing"], genres: ["sport"] },
+    { signal: "soccer", phrases: ["soccer", "football (soccer)"], genres: ["sport"] },
+    { signal: "motorsport", phrases: ["motorsport", "formula one", "nascar", "rally"], genres: ["sport"] },
+    { signal: "extreme sport", phrases: ["extreme sport", "x games"], genres: ["sport"] },
+    { signal: "water sport", phrases: ["surfing", "sailing", "rowing", "swimming"], genres: ["sport"] },
+    // Music
+    { signal: "jukebox musical", phrases: ["jukebox musical"], genres: ["music"] },
+    { signal: "rock musical", phrases: ["rock musical"], genres: ["music"] },
+    { signal: "pop musical", phrases: ["pop musical"], genres: ["music"] },
+    { signal: "classic musical", phrases: ["classic musical", "song-and-dance"], genres: ["music"] },
+    // Family / Animation
+    { signal: "family friendly", phrases: ["family film", "family friendly", "kids movie"], genres: ["family", "animation", "comedy"] },
+    { signal: "animation style", phrases: ["hand-drawn", "stop motion", "computer animation"], genres: ["animation"] },
+];
+// Combine
+const SEED_BANK = [
+    ...ACTION_SEEDS,
+    ...THRILLER_SEEDS,
+    ...SCIFI_SEEDS,
+    ...FANTASY_SEEDS,
+    ...HORROR_SEEDS,
+    ...CRIME_MYSTERY_SEEDS,
+    ...ROMANCE_DRAMA_SEEDS,
+    ...COMEDY_SEEDS,
+    ...DOC_SEEDS,
+    ...OTHER_SEEDS,
+];
+const COMPILED = [];
+for (const row of SEED_BANK) {
+    const tests = [];
+    if (row.phrases) {
+        for (const phrase of row.phrases) {
+            for (const v of expand(phrase)) {
+                const clean = canon(v);
+                if (clean)
+                    tests.push(re(clean.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+            }
+        }
+    }
+    if (row.regexes)
+        tests.push(...row.regexes);
+    // de-dup tests
+    const seen = new Set();
+    const uniq = tests.filter((rx) => {
+        const key = rx.source + "||" + rx.flags;
+        if (seen.has(key))
+            return false;
+        seen.add(key);
+        return true;
+    });
+    if (uniq.length)
+        COMPILED.push({ signal: row.signal, tests: uniq });
+}
+// ---------- Load & normalize keywords ----------
+ensureDir(path.dirname(OUT));
+ensureDir(REPORT_DIR);
 if (!fs.existsSync(INPUT)) {
-    console.error(`ERROR: Cannot find ${INPUT}. Place your big keyword file there (array of {name}).`);
-    process.exit(1);
+    const placeholder = `// placeholder; overwritten by buildFlavorMap
+export const ALL_SIGNALS: readonly string[] = [];
+export type Signal = string;
+export const KEYWORD_TO_SIGNALS: Record<string, readonly string[]> = {};
+`;
+    fs.writeFileSync(OUT, placeholder, "utf8");
+    console.log(`(no keywordIndex.json) wrote placeholder to ${OUT}`);
+    process.exit(0);
 }
 const raw = JSON.parse(fs.readFileSync(INPUT, "utf8"));
-const names = new Set();
+const KW = new Set();
 for (const item of raw) {
-    const rawName = typeof item === "string" ? item : (item?.name ?? "");
-    const k = canonKeyword(rawName);
-    if (!k || STOPWORDS.has(k))
+    const name = typeof item === "string" ? item : item?.name;
+    if (!name)
         continue;
-    names.add(k);
+    const k = canon(name);
+    if (!k)
+        continue;
+    KW.add(k);
 }
-// For each canonical keyword, collect the signals matched by pattern rules:
+// ---------- Match pass ----------
 const mapKWtoSignals = new Map();
 const add = (kw, sig) => {
-    let set = mapKWtoSignals.get(kw);
-    if (!set) {
-        set = new Set();
-        mapKWtoSignals.set(kw, set);
+    let s = mapKWtoSignals.get(kw);
+    if (!s) {
+        s = new Set();
+        mapKWtoSignals.set(kw, s);
     }
-    set.add(sig);
+    s.add(sig);
 };
-// Run the pattern matcher
-for (const kw of names) {
-    for (const pat of P) {
-        if (pat.patterns.some((rx) => rx.test(kw))) {
-            add(kw, pat.signal);
+let matched = 0;
+for (const kw of KW) {
+    let hit = false;
+    for (const { signal, tests } of COMPILED) {
+        if (tests.some((rx) => rx.test(kw))) {
+            add(kw, signal);
+            hit = true;
         }
-        if (pat.alsoExact?.includes(kw)) {
-            add(kw, pat.signal);
+    }
+    if (hit)
+        matched++;
+}
+// ---------- Heuristic fallbacks (catch many remaining) ----------
+// If a keyword contains generic action/thriller/horror/etc tokens, tag it.
+const GENRE_HEURISTICS = [
+    // Action-ish verbs
+    { tokens: re("chase|pursuit|escape|ambush|raid|assault|siege|rescue|hunt|brawl|duel"), signal: "action-beat" },
+    { tokens: re("gun|rifle|pistol|sniper|bomb|grenade|explosive|mine|rocket|missile"), signal: "firepower" },
+    { tokens: re("martial|karate|kung fu|taekwondo|dojo|ninja|samurai|sword|blade"), signal: "martial-weaponry" },
+    // Thriller
+    { tokens: re("conspiracy|cover[- ]?up|whistleblower|stalker|obsession|amnesia|identity|ransom|hostage"), signal: "thriller-beat" },
+    // Sci-Fi
+    { tokens: re("space|planet|galaxy|interstellar|hyperspace|wormhole|android|robot|cyborg|ai|clone|dystopi|apocalypse|post[- ]?apocalyptic|multiverse|x-ray"), signal: "sci-fi-beat" },
+    // Fantasy
+    { tokens: re("magic|wizard|sorcer|spell|dragon|elf|orc|prophecy|chosen one|fairy|fae|demon|cursed"), signal: "fantasy-beat" },
+    // Horror
+    { tokens: re("haunt|ghost|demon|posses|exorcis|witch|slasher|zombie|vampire|werewolf|body horror|gore|curse"), signal: "horror-beat" },
+    // Crime/Mystery
+    { tokens: re("detective|whodun|whodit|private eye|forensic|police|gang|mafia|yakuza|triad|cartel|heist|robbery"), signal: "crime-beat" },
+    // Romance/Drama
+    { tokens: re("romance|love|affair|heartbreak|tragic love|star[- ]?crossed|coming[- ]?of[- ]?age|biopic|courtroom|trial|grief|addiction"), signal: "drama-beat" },
+    // Comedy
+    { tokens: re("comedy|parody|spoof|satire|farce|screwball|mockumentary|slapstick"), signal: "comedy-beat" },
+    // Documentary
+    { tokens: re("documentary|docuseries|archive footage|interview|true crime"), signal: "doc-beat" },
+    // War/History/Western/Adventure/Sport
+    { tokens: re("world war|trench|battlefield|campaign|front line|tank|battalion"), signal: "war-beat" },
+    { tokens: re("ancient|medieval|regency|victorian|renaissance|historical"), signal: "history-beat" },
+    { tokens: re("cowboy|sheriff|gunslinger|outlaw|frontier|ranch"), signal: "western-beat" },
+    { tokens: re("treasure|expedition|voyage|sail|jungle|desert|mountain|quest|swashbuck"), signal: "adventure-beat" },
+    { tokens: re("baseball|basketball|football|soccer|boxing|motorsport|skate|surf|swim|olympic"), signal: "sport-beat" },
+];
+for (const kw of KW) {
+    if (mapKWtoSignals.has(kw))
+        continue;
+    for (const h of GENRE_HEURISTICS) {
+        if (h.tokens.test(kw)) {
+            add(kw, h.signal);
         }
     }
 }
-// Emit TS
-const allSignalsSorted = ALL_SIGNALS; // already sorted
+// ---------- Emit TS file ----------
+const ALL_SIGNALS = Array.from(new Set(Array.from(mapKWtoSignals.values()).flatMap((s) => Array.from(s)))).sort();
 const entries = Array.from(mapKWtoSignals.entries())
     .map(([k, s]) => [k, Array.from(s).sort()])
     .sort((a, b) => a[0].localeCompare(b[0]));
-const file = `/* AUTO-GENERATED by buildFlavorMap.ts — DO NOT EDIT BY HAND */
-export const ALL_SIGNALS = ${JSON.stringify(allSignalsSorted)} as const;
+const outFile = `/* AUTO-GENERATED — DO NOT EDIT BY HAND
+   * Built from keywordIndex.json
+   * Mapped keywords: ${entries.length} | distinct signals: ${ALL_SIGNALS.length}
+   */
+export const ALL_SIGNALS = ${JSON.stringify(ALL_SIGNALS)} as const;
 export type Signal = typeof ALL_SIGNALS[number];
 
 export const KEYWORD_TO_SIGNALS: Record<string, Signal[]> = {
 ${entries.map(([k, arr]) => `  ${JSON.stringify(k)}: ${JSON.stringify(arr)} as Signal[],`).join("\n")}
 };
 `;
-fs.writeFileSync(OUT, file, "utf8");
-console.log(`Generated ${OUT} with ${entries.length} mapped keywords and ${allSignalsSorted.length} signals.`);
+fs.writeFileSync(OUT, outFile, "utf8");
+// ---------- Reports ----------
+const total = KW.size;
+const withSignals = entries.length;
+const without = total - withSignals;
+ensureDir(REPORT_DIR);
+// sample some unmatched for inspection
+const unmatched = [];
+for (const kw of KW)
+    if (!mapKWtoSignals.has(kw))
+        unmatched.push(kw);
+const sample = unmatched.slice(0, 5000);
+fs.writeFileSync(path.join(REPORT_DIR, "coverage-report.json"), JSON.stringify({
+    totalKeywords: total,
+    mappedKeywords: withSignals,
+    unmatchedKeywords: without,
+    distinctSignals: ALL_SIGNALS.length
+}, null, 2));
+fs.writeFileSync(path.join(REPORT_DIR, "unmatched-sample.json"), JSON.stringify(sample, null, 2));
+console.log(`✅ Generated ${OUT}`);
+console.log(`   Coverage: ${withSignals}/${total} mapped (${((withSignals / total) * 100) | 0}% approx)`);
+console.log(`   Reports: ${path.join(REPORT_DIR, "coverage-report.json")}`);

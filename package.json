@@ -5,22 +5,15 @@
   "type": "module",
   "scripts": {
     "gen:keywords": "tsc -p tsconfig.gen.json && node ./scripts-dist/buildFlavorMap.js",
-
-    "prestart": "npm run gen:keywords",
     "start": "vite --open --host",
-
-    "predev": "npm run gen:keywords",
     "dev": "vite --host --port 5173",
-
-    "prebuild": "npm run gen:keywords",
     "build": "tsc -b && vite build --emptyOutDir",
-
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist -b gh-pages",
-
     "preview": "vite preview --host --port 5173"
   },
   "dependencies": {
+    "dotenv": "^17.2.3",
     "framer-motion": "^12.23.24",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"

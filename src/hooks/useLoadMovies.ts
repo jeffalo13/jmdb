@@ -3,7 +3,7 @@ import type { Movie } from "../types/movie";
 import { getMovieByTmdbId } from "../utils/api/getMovieByImdbID";
 
 const REQ_TIMEOUT_MS = 12_000;
-const CACHE_KEY = "mlib:v3:movieset"; // bump version to invalidate all
+const CACHE_KEY = "mlib:v4:movieset"; // bump version to invalidate all
 
 type CacheRecord = {
   ok: true;
