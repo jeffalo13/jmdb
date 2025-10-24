@@ -111,8 +111,8 @@ const searchMatch = (tag: string) => {
 
   if (cleanedTerms.length === 0) return false;
 
-  console.log(`cleanedTerms: ${cleanedTerms} cleanedTag:${cleanedTag}`)
-  console.log(cleanedTerms.some(t => cleanedTag.includes(t)))
+  // console.log(`cleanedTerms: ${cleanedTerms} cleanedTag:${cleanedTag}`)
+  // console.log(cleanedTerms.some(t => cleanedTag.includes(t)))
 
   // Match if the tag contains any term (e.g., "body horror" includes "horror")
   return cleanedTerms.some(t => cleanedTag.includes(t));
