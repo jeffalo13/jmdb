@@ -1,5 +1,5 @@
 import type { Movie } from "../../types/movie";
-import { getFlavorsForKeywords } from "../../data/flavorMappings";
+import { getFlavorsForKeywords } from "../../data/flavorMappingsOG";
 
 type TmdbImageSize = "w92" | "w154" | "w185" | "w342" | "w500" | "w780" | "original";
 
