@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import "./SortDropdown.css";
 import { Button } from "./Button";
 
-export type SortMode = "alpha" | "year" | "runtime";
+export type SortMode = "alpha" | "year" | "runtime" | "dateAdded";
 
 export function SortDropdown({
   sortMode,
@@ -20,7 +20,7 @@ export function SortDropdown({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const arrow = sortAsc ? "↑" : "↓";
-  const label = sortMode === "alpha" ? "Title" : sortMode === "year" ? "Year" : "Runtime";
+  const label = sortMode === "alpha" ? "Title" : sortMode === "year" ? "Year" : sortMode === "dateAdded" ? "Date Added" : "Runtime";
 
   // open/close + outside click
   useEffect(() => {
@@ -73,7 +73,7 @@ export function SortDropdown({
                     label={sortBtnTxt}
                     accentColor="#242636"
                     borderColor="transparent"
-                    style={{ borderRadius: 4, fontSize: "11px", height: "23px", lineHeight: 1 }} // line-height helps text centering
+                    style={{ borderRadius: 4, fontSize: "11px", height: "23px", lineHeight: 1, width:"125px" }} // line-height helps text centering
                     onClick={() => setOpen(v => !v)}
                   />
 
@@ -92,12 +92,22 @@ export function SortDropdown({
         <button
           type="button"
           role="menuitemradio"
+          aria-checked={sortMode === "dateAdded"}
+          className={`ml-dd-item ${sortMode === "dateAdded" ? "is-active" : ""}`}
+          onClick={() => select("dateAdded")}
+        >
+          <span>Date Added</span>
+          {sortMode === "dateAdded" && <span className="ml-dd-itemArrow">{arrow}</span>}
+        </button>
+        <button
+          type="button"
+          role="menuitemradio"
           aria-checked={sortMode === "runtime"}
           className={`ml-dd-item ${sortMode === "runtime" ? "is-active" : ""}`}
           onClick={() => select("runtime")}
         >
           <span>Runtime</span>
-          {sortMode === "year" && <span className="ml-dd-itemArrow">{arrow}</span>}
+          {sortMode === "runtime" && <span className="ml-dd-itemArrow">{arrow}</span>}
         </button>
         <button
           type="button"

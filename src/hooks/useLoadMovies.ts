@@ -99,9 +99,11 @@ function writeCache(ids: number[], sigExact: string, movies: Movie[]) {
   }
 }
 
-export function useLoadMovies(ids: number[]) {
+export function useLoadMovies(movieIDsRaw: Map<number, number>) {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loadingMovieInfo, setLoadingMovieInfo] = useState(true);
+
+  const ids = Array.from(movieIDsRaw.keys());
 
   const sigExact = getSignature(ids);
 
@@ -137,6 +139,7 @@ export function useLoadMovies(ids: number[]) {
 
           try {
             const m = await withTimeout(getMovieByTmdbId(id, perIdAbort.signal), REQ_TIMEOUT_MS, perIdAbort);
+            m.dateAdded = movieIDsRaw.get(m.tmdbID) as number;
             // console.log('made api call')
             if (isValidMovie(m, id)) return [id, m] as const;
           } catch {

@@ -61,7 +61,7 @@ const App: React.FC = () => {
     console.error(error);
   }
 
-  const { movies, loadingMovieInfo } = useLoadMovies(movieIDs as unknown as number[]);
+  const { movies, loadingMovieInfo } = useLoadMovies(movieIDs);
 
   const loading = loadingIDs || loadingMovieInfo || movies.length === 0;
 
@@ -145,7 +145,8 @@ const App: React.FC = () => {
     const strip = (s = "") => s.replace(/^(?:the|a|an)\s+/i, "").trim();
     const dir = sortAsc ? 1 : -1;
     const rankYear = (y?: number | null) => (y == null ? Infinity : y); // unknown years last
-    const rankRuntime = (r?: number | null) => (r == null ? Infinity : r); // unknown years last
+    const rankRuntime = (r?: number | null) => (r == null ? Infinity : r); // unknown Runtime last
+    const rankDateAdded = (r?: number | null) => (r == null ? Infinity : r); // unknown dateAdded last
 
     switch (sortMode) {
       case "alpha": {
@@ -164,6 +165,14 @@ const App: React.FC = () => {
        case "runtime":
         copy.sort((a, b) => {
           const primary = rankRuntime(a.runtime) - rankRuntime(b.runtime);
+          if (primary !== 0) return dir * primary;
+          // tie-break by title (always ascending for stability)
+          return collator.compare(strip(a.title), strip(b.title));
+        });
+        break;
+      case "dateAdded":
+        copy.sort((a, b) => {
+          const primary =rankDateAdded(b.dateAdded) -  rankDateAdded(a.dateAdded);
           if (primary !== 0) return dir * primary;
           // tie-break by title (always ascending for stability)
           return collator.compare(strip(a.title), strip(b.title));

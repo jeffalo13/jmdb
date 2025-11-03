@@ -21,6 +21,7 @@ export async function getMovieByTmdbId(tmdbID: number, signal?: AbortSignal): Pr
     plot: "",
     posterUrl: "",
     tagline: "",
-    runtime: NaN
+    runtime: NaN,
+    dateAdded: NaN
   };
 }

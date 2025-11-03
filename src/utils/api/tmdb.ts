@@ -78,6 +78,7 @@ export async function tmdbGetMovieByImdbId(tmdbID: number, signal?: AbortSignal)
       altPosters,
       tagline: d?.tagline ?? "",
       runtime: d?.runtime,
+      dateAdded: NaN
     };
   } catch {
     return null;

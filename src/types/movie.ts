@@ -1,4 +1,4 @@
-export type SortKey = "alpha" | "year" | "runtime";
+export type SortKey = "alpha" | "year" | "runtime" | "dateAdded";
 
 export interface Movie {
   tmdbID: number;     
@@ -15,4 +15,5 @@ export interface Movie {
   altPosters: string[];
   tagline: string;
   runtime: number;
+  dateAdded: number;
 }

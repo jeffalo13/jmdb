@@ -33,17 +33,16 @@
 .ml-dd-menu {
   position: absolute;
   z-index: 40;
-  padding: 6px;
+  padding: 3px 0px;
   background: var(--chip-bg, #242636);
   border: 1px solid var(--border, #262738);
   border-radius: 4px;
   box-shadow: 0 8px 24px rgba(0,0,0,.18);
-  min-width: max(80px, 100%);   /* match trigger or wider */
-  max-width: min(80px, 90vw);   /* clamp to viewport */
+
+  width: 125px;
 
   /* default placement: below, start-aligned */
   top: calc(100% + 6px);
-  left: 0;
 
   display: grid;
   gap: 6px;
