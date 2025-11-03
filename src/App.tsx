@@ -21,7 +21,7 @@ const App: React.FC = () => {
   const [term, setTerm] = useState("");
   const [openMovie, setOpenMovie] = useState<Movie | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
-  const [sortMode, setSortMode] = useState<SortKey>("alpha");
+  const [sortMode, setSortMode] = useState<SortKey>("dateAdded");
   const [tagText, setTagText] = useState("");
   const [pressedId, setPressedId] = useState<number | null>(null);
 
